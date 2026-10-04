@@ -1,0 +1,4 @@
+.vscode/
+node_modules/
+*.log
+bga_initial_code_template/
