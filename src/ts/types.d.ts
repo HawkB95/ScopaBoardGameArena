@@ -18,6 +18,8 @@ interface ProjectBiagioPlayer extends Player {
 interface ProjectBiagioGamedatas extends Gamedatas<ProjectBiagioPlayer> {
     /** Vero quando si gioca in 4 a coppie. */
     isTeamGame: boolean;
+    /** Id dei giocatori nell'ordine dei posti (e dei turni). */
+    playerOrder: number[];
     /** Nome di ogni squadra (id squadra => nomi dei giocatori). */
     teamNames: Record<number, string>;
     /** Punteggio da raggiungere per vincere. */

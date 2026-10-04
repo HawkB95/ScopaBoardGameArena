@@ -359,7 +359,7 @@ class Game {
      */
     buildBoard() {
         const players = this.gamedatas.players;
-        const opponentPlayerIds = Object.keys(players).map(Number).filter(playerId => playerId !== this.currentPlayerId);
+        const opponentPlayerIds = this.otherPlayerIdsInDisplayOrder();
         const isSpectator = !(this.currentPlayerId in players);
         const opponentsHtml = opponentPlayerIds.map(playerId => `
             <div class="scopa-opponent" id="scopa-opponent-${playerId}">
@@ -396,6 +396,33 @@ class Game {
             </div>`);
     }
     /**
+     * Restituisce gli altri giocatori nell'ordine in cui vengono mostrati in alto, da sinistra a destra:
+     * partendo dal giocatore che gioca dopo di me. Con 4 giocatori l'ordine è quindi: il mio successivo,
+     * il mio compagno (di fronte a me) e il giocatore che gioca prima di me. Per uno spettatore vale l'ordine dei posti.
+     */
+    otherPlayerIdsInDisplayOrder() {
+        const playerOrder = this.gamedatas.playerOrder.map(Number);
+        const myIndex = playerOrder.indexOf(this.currentPlayerId);
+        const orderFromMe = myIndex === -1
+            ? playerOrder
+            : [...playerOrder.slice(myIndex + 1), ...playerOrder.slice(0, myIndex)];
+        return orderFromMe.filter(playerId => playerId !== this.currentPlayerId);
+    }
+    /**
+     * Etichetta del ruolo di un giocatore rispetto a me nelle partite a squadre: "Partner" per il compagno,
+     * "Opponent" per gli avversari. Vuota con 2 giocatori, per me e per gli spettatori.
+     */
+    roleBadgeHtml(playerId) {
+        const myPlayer = this.gamedatas.players[this.currentPlayerId];
+        if (!this.gamedatas.isTeamGame || !myPlayer || playerId === this.currentPlayerId) {
+            return '';
+        }
+        const isPartner = this.gamedatas.players[playerId].team === myPlayer.team;
+        return isPartner
+            ? `<span class="scopa-role-badge scopa-role-badge--partner">${_('Partner')}</span>`
+            : `<span class="scopa-role-badge scopa-role-badge--opponent">${_('Opponent')}</span>`;
+    }
+    /**
      * HTML dell'intestazione di un giocatore: nome (nel suo colore) e il segnalino "Mazziere", nascosto
      * finché non è il suo turno di dare.
      */
@@ -404,6 +431,7 @@ class Game {
         return `
             <div class="scopa-seat" id="scopa-seat-${playerId}">
                 <span class="scopa-seat-name" style="color: #${player.color}">${player.name}</span>
+                ${this.roleBadgeHtml(playerId)}
                 <span class="scopa-dealer-badge">${_('Dealer')}</span>
             </div>`;
     }

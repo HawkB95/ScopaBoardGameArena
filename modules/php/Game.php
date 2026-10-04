@@ -110,6 +110,17 @@ class Game extends \Bga\GameFramework\Table
     }
 
     /**
+     * Restituisce gli id di tutti i giocatori nell'ordine dei posti al tavolo (e quindi dei turni).
+     *
+     * @return int[]
+     */
+    public function playerIdsInTableOrder(): array
+    {
+        $playerRows = $this->getObjectListFromDB("SELECT `player_id` FROM `player` ORDER BY `player_no`");
+        return array_map(fn($playerRow) => (int) $playerRow['player_id'], $playerRows);
+    }
+
+    /**
      * Restituisce gli id dei giocatori che appartengono a una squadra.
      *
      * @return int[]
@@ -370,6 +381,7 @@ class Game extends \Bga\GameFramework\Table
         }
 
         $gameData['isTeamGame'] = $this->isTeamGame();
+        $gameData['playerOrder'] = $this->playerIdsInTableOrder();
         $gameData['teamNames'] = $teamNameByTeam;
         $gameData['target'] = $this->targetScore();
         $gameData['dealer'] = $this->getDealerId();

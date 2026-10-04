@@ -371,3 +371,21 @@
         display: flex;
     }
 }
+
+/* ---------- Partite a squadre (4 giocatori) ---------- */
+
+// Etichetta "Partner" / "Opponent" accanto al nome nelle partite a squadre.
+.scopa-role-badge {
+    padding: 1px 8px;
+    border-radius: 10px;
+    font-size: 12px;
+    color: #fff;
+}
+
+.scopa-role-badge--partner {
+    background: #2e8b57;
+}
+
+.scopa-role-badge--opponent {
+    background: #b5473a;
+}
