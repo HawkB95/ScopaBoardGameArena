@@ -285,3 +285,10 @@
     cursor: pointer;
     outline: 3px dashed #f0c040;
 }
+
+/* ---------- Pulsanti della barra di stato ---------- */
+
+// Aspetto "inattivo" del pulsante di conferma (resta cliccabile: mostra un messaggio se la selezione non è valida).
+.scopa-button-inactive {
+    opacity: 0.45;
+}

@@ -267,3 +267,8 @@
   cursor: pointer;
   outline: 3px dashed #f0c040;
 }
+
+/* ---------- Pulsanti della barra di stato ---------- */
+.scopa-button-inactive {
+  opacity: 0.45;
+}
