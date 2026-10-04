@@ -1,58 +1,244 @@
 import { Game } from "../Game";
+import { cardElementId } from "../CardView";
+
+/** Id del pulsante di conferma nella barra di stato. */
+const CONFIRM_BUTTON_ID = 'scopa-confirm-button';
+/** Id del pulsante che annulla la selezione corrente. */
+const CANCEL_BUTTON_ID = 'scopa-cancel-button';
 
 /**
- * We create one State class per declared state on the PHP side, to handle all state specific code here.
- * onEnteringState, onLeavingState and onPlayerActivationChange are predefined names that will be called by the framework.
- * When executing code in this state, you can access the args using this.args
+ * Stato PlayerTurn: il giocatore attivo sceglie una carta dalla mano e, se può prendere, quali carte del tavolo
+ * prendere. Le prese lecite arrivano dal server (nessuna regola è calcolata qui): il client si limita a
+ * guidare la selezione e a inviare l'azione `actPlay`.
+ *
+ * Funzionamento:
+ *  - clic su una carta in mano: la seleziona (di nuovo clic: la deseleziona);
+ *  - se esiste una sola presa possibile, viene preselezionata; se ce ne sono più, il giocatore clicca le carte
+ *    del tavolo, e quando la selezione coincide con una presa lecita il pulsante "Prendi" si abilita;
+ *  - se nessuna presa è possibile, il pulsante diventa "Posa la carta sul tavolo".
  */
 export class PlayerTurn {
+    /** Prese lecite per ogni carta in mano, ricevute dal server. */
+    private capturesByCard: CapturesByCard = {};
+    /** Id della carta in mano selezionata, oppure null. */
+    private selectedHandCardId: number | null = null;
+    /** Id delle carte del tavolo selezionate per la presa. */
+    private selectedCaptureIds: number[] = [];
+    /** Vero se il giocatore corrente è quello attivo e può agire. */
+    private isActive = false;
+
     constructor(private game: Game, private bga: Bga<EmptyGamePlayer, EmptyGameGamedatas>) {
     }
 
     /**
-     * This method is called each time we are entering the game state. You can use this method to perform some user interface changes at this moment.
+     * Chiamata dal framework all'ingresso nello stato. Se il giocatore è attivo prepara la selezione e i pulsanti
+     * della barra di stato; altrimenti mostra solo il titolo di attesa.
      */
     onEnteringState(args: PlayerTurnArgs, isCurrentPlayerActive: boolean) {
-        this.bga.statusBar.setTitle(isCurrentPlayerActive ? 
-            _('${you} must play a card or pass') :
-            _('${actplayer} must play a card or pass')
-        );
-      
-        if (isCurrentPlayerActive) {
-            const playableCardsIds = args.playableCardsIds; // returned by the PlayerTurn::getArgs
+        this.isActive = isCurrentPlayerActive;
+        this.selectedHandCardId = null;
+        this.selectedCaptureIds = [];
+        this.capturesByCard = args?.captures ?? args?._private?.captures ?? {};
 
-            // Add test action buttons in the action status bar, simulating a card click:
-            playableCardsIds.forEach(
-                cardId => this.bga.statusBar.addActionButton(_('Play card with id ${card_id}').replace('${card_id}', `${cardId}`), () => this.onCardClick(cardId))
-            ); 
-
-            this.bga.statusBar.addActionButton(_('Pass'), () => this.bga.actions.performAction("actPass"), { color: 'secondary' }); 
+        if (!isCurrentPlayerActive) {
+            this.bga.statusBar.setTitle(_('${actplayer} must play a card'));
+            return;
         }
+
+        this.bga.statusBar.addActionButton(_('Capture'), () => this.onConfirmClick(), { id: CONFIRM_BUTTON_ID, disabled: true });
+        this.bga.statusBar.addActionButton(_('Cancel selection'), () => this.onCancelClick(), { id: CANCEL_BUTTON_ID, color: 'secondary' });
+        this.refreshSelectionDisplay();
     }
 
     /**
-     * This method is called each time we are leaving the game state. You can use this method to perform some user interface changes at this moment.
+     * Chiamata dal framework all'uscita dallo stato: toglie tutte le evidenziazioni dalle carte.
      */
     onLeavingState(args: PlayerTurnArgs, isCurrentPlayerActive: boolean) {
+        this.isActive = false;
+        this.selectedHandCardId = null;
+        this.selectedCaptureIds = [];
+        this.clearCardHighlights();
     }
 
     /**
-     * This method is called each time the current player becomes active or inactive in a MULTIPLE_ACTIVE_PLAYER state. You can use this method to perform some user interface changes at this moment.
-     * on MULTIPLE_ACTIVE_PLAYER states, you may want to call this function in onEnteringState using `this.onPlayerActivationChange(args, isCurrentPlayerActive)` at the end of onEnteringState.
-     * If your state is not a MULTIPLE_ACTIVE_PLAYER one, you can delete this function.
+     * Chiamata dal framework quando il giocatore diventa attivo o smette di esserlo (qui non serve: stato a giocatore singolo).
      */
     onPlayerActivationChange(args: PlayerTurnArgs, isCurrentPlayerActive: boolean) {
     }
 
-    
-    onCardClick(card_id: number) {
-        console.log( 'onCardClick', card_id );
+    /**
+     * Gestisce il clic su una carta della propria mano: la seleziona, oppure la deseleziona se era già selezionata.
+     * Se per quella carta esiste una sola presa, la preseleziona.
+     */
+    onHandCardClick(cardId: number) {
+        if (!this.isActive || !this.capturesByCard[cardId]) {
+            return;
+        }
+        if (this.selectedHandCardId === cardId) {
+            this.selectedHandCardId = null;
+            this.selectedCaptureIds = [];
+        } else {
+            this.selectedHandCardId = cardId;
+            const availableCaptures = this.capturesByCard[cardId];
+            this.selectedCaptureIds = availableCaptures.length === 1 ? [...availableCaptures[0]] : [];
+        }
+        this.refreshSelectionDisplay();
+    }
 
-        this.bga.actions.performAction("actPlayCard", { 
-            card_id,
-        }).then(() =>  {                
-            // What to do after the server call if it succeeded
-            // (most of the time, nothing, as the game will react to notifs / change of state instead, so you can delete the `then`)
-        });        
+    /**
+     * Gestisce il clic su una carta del tavolo: la aggiunge o la toglie dalla presa in costruzione. Se dopo il clic
+     * rimane una sola presa compatibile con la selezione, la completa automaticamente.
+     */
+    onTableCardClick(cardId: number) {
+        if (!this.isActive || this.selectedHandCardId === null) {
+            return;
+        }
+        const isAlreadySelected = this.selectedCaptureIds.includes(cardId);
+        if (isAlreadySelected) {
+            this.selectedCaptureIds = this.selectedCaptureIds.filter(selectedId => selectedId !== cardId);
+        } else if (this.getSelectableTableCardIds().includes(cardId)) {
+            this.selectedCaptureIds = [...this.selectedCaptureIds, cardId];
+        } else {
+            return;
+        }
+
+        const compatibleCaptures = this.getCompatibleCaptures();
+        if (compatibleCaptures.length === 1) {
+            this.selectedCaptureIds = [...compatibleCaptures[0]];
+        }
+        this.refreshSelectionDisplay();
+    }
+
+    /**
+     * Prese lecite della carta in mano selezionata che contengono tutte le carte del tavolo già scelte.
+     */
+    private getCompatibleCaptures(): number[][] {
+        if (this.selectedHandCardId === null) {
+            return [];
+        }
+        const availableCaptures = this.capturesByCard[this.selectedHandCardId];
+        return availableCaptures.filter(capture => this.selectedCaptureIds.every(selectedId => capture.includes(selectedId)));
+    }
+
+    /**
+     * Id delle carte del tavolo che il giocatore può ancora cliccare per completare una presa lecita.
+     */
+    private getSelectableTableCardIds(): number[] {
+        const idsOfCompatibleCaptures = this.getCompatibleCaptures().flat();
+        return [...new Set(idsOfCompatibleCaptures)].filter(cardId => !this.selectedCaptureIds.includes(cardId));
+    }
+
+    /**
+     * Vero se le carte selezionate coincidono esattamente con una presa lecita.
+     */
+    private isSelectionACompleteCapture(): boolean {
+        if (this.selectedHandCardId === null || this.selectedCaptureIds.length === 0) {
+            return false;
+        }
+        const sortedSelection = [...this.selectedCaptureIds].sort((first, second) => first - second);
+        return this.capturesByCard[this.selectedHandCardId].some(capture => {
+            const sortedCapture = [...capture].sort((first, second) => first - second);
+            return sortedCapture.length === sortedSelection.length
+                && sortedCapture.every((cardId, index) => cardId === sortedSelection[index]);
+        });
+    }
+
+    /**
+     * Aggiorna tutto ciò che il giocatore vede della selezione: evidenziazioni delle carte, titolo della barra di
+     * stato e stato dei pulsanti "Prendi / Posa la carta" e "Annulla".
+     */
+    private refreshSelectionDisplay() {
+        this.clearCardHighlights();
+
+        const confirmButton = document.getElementById(CONFIRM_BUTTON_ID);
+        const cancelButton = document.getElementById(CANCEL_BUTTON_ID);
+
+        // Nessuna carta in mano selezionata: tutte le carte della mano sono giocabili.
+        if (this.selectedHandCardId === null) {
+            Object.keys(this.capturesByCard).forEach(cardId => this.addClass(Number(cardId), 'scopa-card--playable'));
+            this.bga.statusBar.setTitle(_('${you} must play a card'));
+            this.setButtonState(confirmButton, false, _('Capture'));
+            this.setButtonVisible(cancelButton, false);
+            return;
+        }
+
+        this.addClass(this.selectedHandCardId, 'scopa-card--selected');
+        this.setButtonVisible(cancelButton, true);
+
+        const availableCaptures = this.capturesByCard[this.selectedHandCardId];
+        if (availableCaptures.length === 0) {
+            // Nessuna presa possibile: la carta può solo essere posata sul tavolo.
+            this.bga.statusBar.setTitle(_('${you} cannot capture: put the card on the table'));
+            this.setButtonState(confirmButton, true, _('Put the card on the table'));
+            return;
+        }
+
+        this.selectedCaptureIds.forEach(cardId => this.addClass(cardId, 'scopa-card--selected'));
+        this.getSelectableTableCardIds().forEach(cardId => this.addClass(cardId, 'scopa-card--selectable'));
+        this.bga.statusBar.setTitle(_('${you} must choose the cards to capture'));
+        this.setButtonState(confirmButton, this.isSelectionACompleteCapture(), _('Capture'));
+    }
+
+    /**
+     * Invia l'azione al server con la carta giocata e le carte da prendere (elenco vuoto = posa sul tavolo).
+     * Va chiamata solo da un clic del giocatore.
+     */
+    private onConfirmClick() {
+        if (this.selectedHandCardId === null) {
+            return;
+        }
+        const noCapturePossible = this.capturesByCard[this.selectedHandCardId].length === 0;
+        if (!noCapturePossible && !this.isSelectionACompleteCapture()) {
+            return;
+        }
+        this.bga.actions.performAction('actPlay', {
+            card_id: this.selectedHandCardId,
+            capture_ids: noCapturePossible ? [] : this.selectedCaptureIds,
+        });
+    }
+
+    /**
+     * Annulla la selezione corrente (carta in mano e carte del tavolo) senza contattare il server.
+     */
+    private onCancelClick() {
+        this.selectedHandCardId = null;
+        this.selectedCaptureIds = [];
+        this.refreshSelectionDisplay();
+    }
+
+    /**
+     * Toglie dalle carte tutte le classi di evidenziazione usate dalla selezione.
+     */
+    private clearCardHighlights() {
+        document.querySelectorAll('.scopa-card--playable, .scopa-card--selected, .scopa-card--selectable').forEach(cardElement => {
+            cardElement.classList.remove('scopa-card--playable', 'scopa-card--selected', 'scopa-card--selectable');
+        });
+    }
+
+    /**
+     * Aggiunge una classe CSS alla carta con l'id indicato (se esiste).
+     */
+    private addClass(cardId: number, className: string) {
+        document.getElementById(cardElementId(cardId))?.classList.add(className);
+    }
+
+    /**
+     * Abilita o disabilita un pulsante della barra di stato e ne cambia il testo.
+     */
+    private setButtonState(button: HTMLElement | null, isEnabled: boolean, label: string) {
+        if (!button) {
+            return;
+        }
+        button.classList.toggle('disabled', !isEnabled);
+        button.textContent = label;
+    }
+
+    /**
+     * Mostra o nasconde un pulsante della barra di stato.
+     */
+    private setButtonVisible(button: HTMLElement | null, isVisible: boolean) {
+        if (button) {
+            button.style.display = isVisible ? '' : 'none';
+        }
     }
 }

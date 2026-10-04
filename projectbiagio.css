@@ -7,48 +7,263 @@
  * This code has been produced on the BGA studio platform for use on http://boardgamearena.com.
  * See http://en.boardgamearena.com/#!doc/Studio for more information.
  * -----
+ *
+ * Stile del gioco Scopa. Questo file SCSS viene compilato in projectbiagio.css con `npm run build:scss`.
+ * Tutte le classi hanno il prefisso "scopa-" per non entrare in conflitto con quelle di BGA.
  */
-/*
-    This is the CSS stylesheet of your game User Interface.
+:root {
+  --scopa-card-width: 72px;
+  --scopa-card-height: calc(var(--scopa-card-width) * 1.4);
+  --scopa-table-color: #1f6b43;
+  --scopa-card-red: #c0272d;
+  --scopa-card-black: #1d1d1d;
+}
 
-    Styles defined on this file will be applied to HTML elements you create (in Game.js).
+/* ---------- Struttura generale ---------- */
+#scopa-board {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 8px;
+}
 
-    Usually, you are using CSS to:
+#scopa-opponents {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16px;
+}
 
-    1°) define the overall layout of your game
-        (ex: place the board on the top left, place player's hand beside, place the deck on the right, ...).
+#scopa-middle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 16px;
+}
 
-    2°) create your CSS-sprites:
-        All images of your games should be gathered into a small number of image files. Then, using
-        background-image and background-position CSS properties, you create HTML blocks that can 
-        display these images correctly (see example below).
+.scopa-my-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
 
-    3°) ... anything else:
-        It is really easy to add and remove CSS classes dynamically from your Javascript with
-        dojo.addClass and dojo.removeClass. It is also easy to check if an element has a class
-        (dojo.hasClass) or to get all elements with a specific class (dojo.query). This is why,
-        very often, using CSS classes for the logic of your user interface allow you to do complex
-        thing easily.
+/* ---------- Intestazione dei giocatori e segnalino mazziere ---------- */
+.scopa-seat {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: bold;
+}
 
+.scopa-dealer-badge {
+  display: none;
+  padding: 1px 8px;
+  border-radius: 10px;
+  background: #f0c040;
+  color: #333;
+  font-size: 12px;
+}
 
-     Note: on the production platform, this file will be compressed and comments will be removed.
-           Consequently, don't hesitate to put as many comments as necessary.
-*/
-/********* You can start writing your SCSS below this line: **********/
-/*
-    Example of CSS sprites (a black token and a white token, 20x20px each, embedded in the same "tokens.png" 40x20px image):
+.scopa-seat--dealer .scopa-dealer-badge {
+  display: inline-block;
+}
 
-    .white_token {
-        background-image: url('img/tokens.png');
-        background-position: 0px 0px;
-    }
-    .black_token {
-        background-image: url('img/tokens.png');
-        background-position: -20px 0px;
-    }
-    .token {
-        width: 20px;
-        height: 20px;
-        background-repeat: none;
-    }
-*/
+/* ---------- Carte ---------- */
+.scopa-card {
+  position: relative;
+  box-sizing: border-box;
+  flex: 0 0 auto;
+  width: var(--scopa-card-width);
+  height: var(--scopa-card-height);
+  border: 1px solid #555;
+  border-radius: 6px;
+  background: #fffdf6;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  user-select: none;
+  font-family: Georgia, "Times New Roman", serif;
+  transition: box-shadow 0.15s, outline-color 0.15s;
+}
+
+.scopa-card--red {
+  color: var(--scopa-card-red);
+}
+
+.scopa-card--black {
+  color: var(--scopa-card-black);
+}
+
+.scopa-card-corner {
+  position: absolute;
+  font-size: calc(var(--scopa-card-width) * 0.22);
+  font-weight: bold;
+  line-height: 1.05;
+  text-align: center;
+}
+
+.scopa-card-corner--top {
+  top: 4px;
+  left: 5px;
+}
+
+.scopa-card-corner--bottom {
+  right: 5px;
+  bottom: 4px;
+  transform: rotate(180deg);
+}
+
+.scopa-card-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.scopa-card-big-suit {
+  font-size: calc(var(--scopa-card-width) * 0.55);
+  line-height: 1;
+}
+
+.scopa-card-face-letter {
+  font-size: calc(var(--scopa-card-width) * 0.4);
+  font-weight: bold;
+  line-height: 1;
+}
+
+/* Dorso della carta (mano degli avversari, mazzo, pile). */
+.scopa-card--back {
+  background: repeating-linear-gradient(45deg, #2b4a8a 0, #2b4a8a 6px, #3a5ea8 6px, #3a5ea8 12px);
+  border: 3px solid #fffdf6;
+  outline: 1px solid #555;
+}
+
+/* ---------- Mano propria e carte degli avversari ---------- */
+#scopa-hand {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  min-height: var(--scopa-card-height);
+}
+
+.scopa-opponent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.scopa-opponent-hand {
+  display: flex;
+  justify-content: center;
+  min-height: calc(var(--scopa-card-height) * 0.6);
+}
+.scopa-opponent-hand .scopa-card {
+  margin-left: calc(var(--scopa-card-width) * -0.55);
+  width: calc(var(--scopa-card-width) * 0.7);
+  height: calc(var(--scopa-card-height) * 0.7);
+}
+.scopa-opponent-hand .scopa-card:first-child {
+  margin-left: 0;
+}
+
+/* ---------- Mazzo e tavolo ---------- */
+#scopa-deck-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+}
+
+#scopa-deck.scopa-deck--empty {
+  visibility: hidden;
+}
+
+#scopa-table {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  justify-content: center;
+  gap: 8px;
+  box-sizing: border-box;
+  min-width: calc(var(--scopa-card-width) * 4.5);
+  min-height: calc(var(--scopa-card-height) * 1.4);
+  padding: 12px;
+  flex: 1 1 300px;
+  max-width: 640px;
+  border-radius: 12px;
+  background: var(--scopa-table-color);
+  box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.5);
+}
+
+/* ---------- Pile delle prese ---------- */
+#scopa-piles {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.scopa-pile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.6);
+  font-size: 13px;
+  transition: box-shadow 0.3s, background 0.3s;
+}
+
+.scopa-pile-name {
+  font-weight: bold;
+}
+
+.scopa-pile-cards {
+  position: relative;
+  width: var(--scopa-card-width);
+  height: var(--scopa-card-height);
+  border: 2px dashed rgba(0, 0, 0, 0.3);
+  border-radius: 6px;
+  box-sizing: border-box;
+}
+.scopa-pile-cards .scopa-card {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.scopa-pile--has-cards .scopa-pile-cards {
+  border: 3px solid #fffdf6;
+  outline: 1px solid #555;
+  background: repeating-linear-gradient(45deg, #2b4a8a 0, #2b4a8a 6px, #3a5ea8 6px, #3a5ea8 12px);
+}
+
+.scopa-pile--scopa {
+  background: #ffe27a;
+  box-shadow: 0 0 14px 4px #f0b000;
+}
+
+/* ---------- Selezione delle carte ---------- */
+#scopa-hand .scopa-card--playable {
+  cursor: pointer;
+}
+#scopa-hand .scopa-card--playable:hover {
+  transform: translateY(-6px);
+}
+
+.scopa-card--selected {
+  outline: 3px solid #2d7be5;
+  box-shadow: 0 0 10px 2px #2d7be5;
+  transform: translateY(-8px);
+}
+
+.scopa-card--selectable {
+  cursor: pointer;
+  outline: 3px dashed #f0c040;
+}
