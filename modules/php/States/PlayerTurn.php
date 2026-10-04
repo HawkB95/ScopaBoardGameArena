@@ -56,13 +56,14 @@ class PlayerTurn extends GameState
      * della smazzata), si aggiornano le statistiche e si avvisano tutti.
      *
      * @param int   $card_id        id della carta in mano che si gioca
-     * @param int[] $capture_ids    id delle carte del tavolo da prendere (può essere vuoto)
      * @param int   $activePlayerId compilato automaticamente dal framework con il giocatore che agisce
+     * @param int[] $capture_ids    id delle carte del tavolo da prendere; se vuoto il client non lo invia affatto
+     *                              (BGA scarta le liste vuote), quindi il valore predefinito è la lista vuota
      * @return string lo stato successivo: NextPlayer
      * @throws UserException se la carta non è nella mano del giocatore o la presa non è lecita
      */
     #[PossibleAction]
-    public function actPlay(int $card_id, #[IntArrayParam] array $capture_ids, int $activePlayerId)
+    public function actPlay(int $card_id, int $activePlayerId, #[IntArrayParam] array $capture_ids = [])
     {
         $game = $this->game;
         $cards = $game->cards;
@@ -155,6 +156,6 @@ class PlayerTurn extends GameState
 
         $availableCaptures = $capturesByHandCardId[$chosenCardId];
         $chosenCapture = count($availableCaptures) > 0 ? $availableCaptures[bga_rand(0, count($availableCaptures) - 1)] : [];
-        return $this->actPlay($chosenCardId, $chosenCapture, $playerId);
+        return $this->actPlay($chosenCardId, $playerId, $chosenCapture);
     }
 }

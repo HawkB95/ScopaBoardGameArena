@@ -200,10 +200,13 @@ export class PlayerTurn {
             this.bga.dialogs.showMessage(_('Select the cards to capture first'), 'error');
             return;
         }
-        this.bga.actions.performAction('actPlay', {
-            card_id: this.selectedHandCardId,
-            capture_ids: noCapturePossible ? [] : this.selectedCaptureIds,
-        });
+        // Con una lista di prese vuota il parametro non viene inviato (BGA scarta gli array vuoti): il server
+        // lo considera allora una posa sul tavolo.
+        const actionArguments: { card_id: number; capture_ids?: number[] } = { card_id: this.selectedHandCardId };
+        if (!noCapturePossible) {
+            actionArguments.capture_ids = this.selectedCaptureIds;
+        }
+        this.bga.actions.performAction('actPlay', actionArguments);
     }
 
     /**
