@@ -12,11 +12,19 @@
  * Tutte le classi hanno il prefisso "scopa-" per non entrare in conflitto con quelle di BGA.
  */
 :root {
-  --scopa-card-width: 72px;
-  --scopa-card-height: calc(var(--scopa-card-width) * 1.4);
+  --scopa-card-width: 84px;
   --scopa-table-color: #1f6b43;
   --scopa-card-red: #c0272d;
   --scopa-card-black: #1d1d1d;
+}
+
+#scopa-board {
+  --scopa-card-ratio: 1.714;
+  --scopa-card-height: calc(var(--scopa-card-width) * var(--scopa-card-ratio));
+}
+
+.scopa_cards_french #scopa-board {
+  --scopa-card-ratio: 1.4;
 }
 
 /* ---------- Struttura generale ---------- */
@@ -309,4 +317,82 @@
     transform: translate(-50%, -50%) scale(1);
     opacity: 0;
   }
+}
+/* ---------- Stile delle carte: napoletane (predefinito) e francesi ---------- */
+.scopa-card:not(.scopa-card--back) {
+  background-image: url("img/cards.jpg");
+  background-size: 1000% 400%;
+  background-repeat: no-repeat;
+  background-color: #fffdf6;
+  border-radius: 7px;
+}
+.scopa-card:not(.scopa-card--back) > span {
+  display: none;
+}
+
+.scopa-card--rank-1 {
+  background-position-x: 0%;
+}
+
+.scopa-card--rank-2 {
+  background-position-x: 11.1111111111%;
+}
+
+.scopa-card--rank-3 {
+  background-position-x: 22.2222222222%;
+}
+
+.scopa-card--rank-4 {
+  background-position-x: 33.3333333333%;
+}
+
+.scopa-card--rank-5 {
+  background-position-x: 44.4444444444%;
+}
+
+.scopa-card--rank-6 {
+  background-position-x: 55.5555555556%;
+}
+
+.scopa-card--rank-7 {
+  background-position-x: 66.6666666667%;
+}
+
+.scopa-card--rank-8 {
+  background-position-x: 77.7777777778%;
+}
+
+.scopa-card--rank-9 {
+  background-position-x: 88.8888888889%;
+}
+
+.scopa-card--rank-10 {
+  background-position-x: 100%;
+}
+
+.scopa-card--suit-1 {
+  background-position-y: 0%;
+}
+
+.scopa-card--suit-2 {
+  background-position-y: 33.3333333333%;
+}
+
+.scopa-card--suit-3 {
+  background-position-y: 66.6666666667%;
+}
+
+.scopa-card--suit-4 {
+  background-position-y: 100%;
+}
+
+.scopa_cards_french .scopa-card:not(.scopa-card--back) {
+  background-image: none;
+  border-radius: 6px;
+}
+.scopa_cards_french .scopa-card:not(.scopa-card--back) > .scopa-card-corner {
+  display: block;
+}
+.scopa_cards_french .scopa-card:not(.scopa-card--back) > .scopa-card-center {
+  display: flex;
 }

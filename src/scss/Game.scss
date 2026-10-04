@@ -13,11 +13,20 @@
 
 // Dimensioni della carta (rapporto 5:7). Cambiando la larghezza si ridimensionano tutte le carte.
 :root {
-    --scopa-card-width: 72px;
-    --scopa-card-height: calc(var(--scopa-card-width) * 1.4);
+    --scopa-card-width: 84px;
     --scopa-table-color: #1f6b43;
     --scopa-card-red: #c0272d;
     --scopa-card-black: #1d1d1d;
+}
+
+// Altezza della carta = larghezza x rapporto. Le carte napoletane sono più alte (1.714) di quelle francesi (1.4).
+#scopa-board {
+    --scopa-card-ratio: 1.714;
+    --scopa-card-height: calc(var(--scopa-card-width) * var(--scopa-card-ratio));
+}
+
+.scopa_cards_french #scopa-board {
+    --scopa-card-ratio: 1.4;
 }
 
 /* ---------- Struttura generale ---------- */
@@ -319,4 +328,46 @@
     20% { transform: translate(-50%, -50%) scale(1.15); opacity: 1; }
     75% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
     100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
+}
+
+/* ---------- Stile delle carte: napoletane (predefinito) e francesi ---------- */
+
+// Carte napoletane: sprite di 10 colonne (Asso..Re) per 4 righe (denari, coppe, bastoni, spade).
+// Il testo del disegno francese resta nascosto.
+.scopa-card:not(.scopa-card--back) {
+    background-image: url('img/cards.jpg');
+    background-size: 1000% 400%;
+    background-repeat: no-repeat;
+    background-color: #fffdf6;
+    border-radius: 7px;
+
+    > span {
+        display: none;
+    }
+}
+
+@for $rank from 1 through 10 {
+    .scopa-card--rank-#{$rank} {
+        background-position-x: percentage(($rank - 1) / 9);
+    }
+}
+
+@for $suit from 1 through 4 {
+    .scopa-card--suit-#{$suit} {
+        background-position-y: percentage(($suit - 1) / 3);
+    }
+}
+
+// Carte francesi (preferenza "Card style"): niente sprite, si rivede il disegno in testo.
+.scopa_cards_french .scopa-card:not(.scopa-card--back) {
+    background-image: none;
+    border-radius: 6px;
+
+    > .scopa-card-corner {
+        display: block;
+    }
+
+    > .scopa-card-center {
+        display: flex;
+    }
 }

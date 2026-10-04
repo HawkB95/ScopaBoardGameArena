@@ -1,5 +1,7 @@
 /*
- * Disegno delle carte francesi in HTML/CSS (nessuna immagine).
+ * Disegno delle carte. L'elemento di una carta contiene sia il disegno francese in HTML/CSS (valore e seme in
+ * testo) sia le classi per lo sprite delle carte napoletane (img/cards.jpg): il CSS mostra l'uno o l'altro in
+ * base alla preferenza "Card style" del giocatore (napoletane di default).
  * Corrispondenza dei semi: denari = quadri, coppe = cuori, bastoni = fiori, spade = picche.
  */
 /** Simbolo di ogni seme (id seme => simbolo). */
@@ -36,7 +38,7 @@ function cardName(card) {
 function createCardElement(card) {
     const cardElement = document.createElement('div');
     cardElement.id = cardElementId(card.id);
-    cardElement.className = `scopa-card scopa-card--${isRedSuit(card.suit) ? 'red' : 'black'}`;
+    cardElement.className = `scopa-card scopa-card--${isRedSuit(card.suit) ? 'red' : 'black'} scopa-card--suit-${card.suit} scopa-card--rank-${card.rank}`;
     cardElement.dataset.cardId = String(card.id);
     cardElement.dataset.rank = String(card.rank);
     cardElement.dataset.suit = String(card.suit);
