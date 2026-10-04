@@ -10,7 +10,16 @@
  *
  * Game.php
  *
- * Scopa: main game logic and shared helpers. Pure rules live in Rules/ScopaRules.php.
+ * Scopa: main game class. It holds the game setup, the data sent to the client and the helpers shared by the
+ * game states (teams, seating, cards, scope). The pure rules (captures, scoring) are in Rules/ScopaRules.php.
+ *
+ * Card storage (Deck component, table `scopa_card`):
+ *  - card type     = suit (1 denari, 2 coppe, 3 bastoni, 4 spade)
+ *  - card type_arg = rank (1..10)
+ *  - locations     : 'deck', 'hand' (arg = player id), 'table', 'captured' (arg = team id)
+ *
+ * Teams: with 2 players each player is a team (team id = seat number); with 4 players seats 1&3 are team 1
+ * and seats 2&4 are team 2.
  */
 declare(strict_types=1);
 
@@ -21,21 +30,34 @@ use Bga\Games\ProjectBiagio\States\NewDeal;
 
 class Game extends \Bga\GameFramework\Table
 {
+    /** Id of the "target score" table option (see gameoptions.jsonc). */
     public const OPTION_TARGET_SCORE = 100;
 
-    public const LOC_DECK = 'deck';
-    public const LOC_HAND = 'hand';
-    public const LOC_TABLE = 'table';
-    public const LOC_CAPTURED = 'captured';
+    public const LOCATION_DECK = 'deck';
+    public const LOCATION_HAND = 'hand';
+    public const LOCATION_TABLE = 'table';
+    public const LOCATION_CAPTURED = 'captured';
 
-    private const SUIT_SYMBOLS = [1 => '♦', 2 => '♥', 3 => '♣', 4 => '♠'];
-    private const RANK_LABELS = [1 => 'A', 2 => '2', 3 => '3', 4 => '4', 5 => '5', 6 => '6', 7 => '7', 8 => 'J', 9 => 'Q', 10 => 'K'];
+    /** Symbol shown in the game log for each suit (suit id => symbol). */
+    private const SUIT_SYMBOL_BY_SUIT = [1 => '♦', 2 => '♥', 3 => '♣', 4 => '♠'];
+
+    /** Short label shown in the game log for each rank (rank => label). */
+    private const RANK_LABEL_BY_RANK = [1 => 'A', 2 => '2', 3 => '3', 4 => '4', 5 => '5', 6 => '6', 7 => '7', 8 => 'J', 9 => 'Q', 10 => 'K'];
+
+    /** Number of cards in the deck. */
+    private const DECK_SIZE = 40;
+
+    /** Rough average of the points scored in one deal, used only to estimate the game progression. */
+    private const AVERAGE_POINTS_PER_DEAL = 3;
 
     public \Bga\GameFramework\Components\Deck $cards;
 
-    /** @var array<int, int[]>|null team id => player ids (in table order) */
-    private ?array $teamsCache = null;
+    /** @var array<int, int[]>|null cache: team id => ids of the players of that team, in table order */
+    private ?array $playerIdsByTeamCache = null;
 
+    /**
+     * Creates the Deck component bound to the `scopa_card` table. It must be created here, not in setup.
+     */
     public function __construct()
     {
         parent::__construct();
@@ -46,77 +68,118 @@ class Game extends \Bga\GameFramework\Table
     ///////////////////////////////////////////////////
     //// Teams and seating
 
+    /**
+     * True when the game is played by 4 players in two teams of two.
+     */
     public function isTeamGame(): bool
     {
         return $this->getPlayersNumber() === 4;
     }
 
-    /** Teams are 1 and 2. With 2 players each player is a team; with 4 players seats 1&3 and 2&4 are partners. */
+    /**
+     * Returns the team (1 or 2) of a player. With 2 players the team is the seat number; with 4 players
+     * partners sit opposite each other (seats 1&3 are team 1, seats 2&4 are team 2).
+     */
     public function teamOf(int $playerId): int
     {
-        $no = (int) $this->getPlayerNoById($playerId);
-        return $this->isTeamGame() ? (($no - 1) % 2) + 1 : $no;
+        $seatNumber = (int) $this->getPlayerNoById($playerId);
+        return $this->isTeamGame() ? (($seatNumber - 1) % 2) + 1 : $seatNumber;
     }
 
-    /** @return array<int, int[]> */
+    /**
+     * Returns the players of every team, keyed by team id (cached after the first call).
+     *
+     * @return array<int, int[]> team id => player ids in table order
+     */
     public function getTeams(): array
     {
-        if ($this->teamsCache === null) {
-            $teams = [];
-            $rows = $this->getObjectListFromDB("SELECT `player_id`, `player_no` FROM `player` ORDER BY `player_no`");
-            foreach ($rows as $row) {
-                $teams[$this->teamOf((int) $row['player_id'])][] = (int) $row['player_id'];
+        if ($this->playerIdsByTeamCache === null) {
+            $playerIdsByTeam = [];
+            $playerRows = $this->getObjectListFromDB("SELECT `player_id`, `player_no` FROM `player` ORDER BY `player_no`");
+            foreach ($playerRows as $playerRow) {
+                $playerId = (int) $playerRow['player_id'];
+                $playerIdsByTeam[$this->teamOf($playerId)][] = $playerId;
             }
-            ksort($teams);
-            $this->teamsCache = $teams;
+            ksort($playerIdsByTeam);
+            $this->playerIdsByTeamCache = $playerIdsByTeam;
         }
-        return $this->teamsCache;
+        return $this->playerIdsByTeamCache;
     }
 
-    /** @return int[] */
-    public function playersOfTeam(int $team): array
+    /**
+     * Returns the ids of the players belonging to a team.
+     *
+     * @return int[]
+     */
+    public function playersOfTeam(int $teamId): array
     {
-        return $this->getTeams()[$team];
+        return $this->getTeams()[$teamId];
     }
 
-    public function teamName(int $team): string
+    /**
+     * Returns a readable name for a team: the names of its players joined by " & ".
+     */
+    public function teamName(int $teamId): string
     {
-        $names = array_map(fn($pid) => $this->getPlayerNameById($pid), $this->playersOfTeam($team));
-        return implode(' & ', $names);
+        $playerNames = array_map(fn($playerId) => $this->getPlayerNameById($playerId), $this->playersOfTeam($teamId));
+        return implode(' & ', $playerNames);
     }
 
-    public function teamScore(int $team): int
+    /**
+     * Returns the current total score of a team. Every member has the same score, so the first one is read.
+     */
+    public function teamScore(int $teamId): int
     {
-        return $this->bga->playerScore->get($this->playersOfTeam($team)[0]);
+        $firstPlayerOfTeam = $this->playersOfTeam($teamId)[0];
+        return $this->bga->playerScore->get($firstPlayerOfTeam);
     }
 
-    /** @return int[] player ids in table order, starting from the first player of the hand (after the dealer) */
+    /**
+     * Returns all the players in turn order, starting from the player who leads the hand
+     * (the player after the dealer).
+     *
+     * @return int[] player ids
+     */
     public function playersFromFirst(): array
     {
-        $order = [];
-        $pid = $this->getFirstPlayerId();
-        for ($i = 0; $i < $this->getPlayersNumber(); $i++) {
-            $order[] = $pid;
-            $pid = $this->getPlayerAfter($pid);
+        $playerIdsInTurnOrder = [];
+        $playerId = $this->getFirstPlayerId();
+        for ($count = 0; $count < $this->getPlayersNumber(); $count++) {
+            $playerIdsInTurnOrder[] = $playerId;
+            $playerId = $this->getPlayerAfter($playerId);
         }
-        return $order;
+        return $playerIdsInTurnOrder;
     }
 
+    /**
+     * Returns the id of the current dealer.
+     */
     public function getDealerId(): int
     {
         return (int) $this->bga->globals->get('dealer');
     }
 
+    /**
+     * Returns the id of the player who leads every hand of the deal: the player after the dealer
+     * in the BGA table order.
+     */
     public function getFirstPlayerId(): int
     {
         return $this->getPlayerAfter($this->getDealerId());
     }
 
+    /**
+     * Number of cards dealt to each player at once: 3 with two players (several rounds of dealing),
+     * 10 with four players (the whole deck is dealt in one go).
+     */
     public function handSize(): int
     {
         return $this->isTeamGame() ? 10 : 3;
     }
 
+    /**
+     * Returns the number of points a team must reach to win the game.
+     */
     public function targetScore(): int
     {
         return (int) $this->bga->globals->get('target');
@@ -125,186 +188,240 @@ class Game extends \Bga\GameFramework\Table
     ///////////////////////////////////////////////////
     //// Cards
 
-    /** Card in the format exchanged with the client and with ScopaRules. */
-    public function cardView(array $card): array
+    /**
+     * Converts a card as returned by the Deck component into the format used by the client and by ScopaRules
+     * (id, suit, rank).
+     *
+     * @return array{id:int, suit:int, rank:int}
+     */
+    public function cardView(array $deckCard): array
     {
         return [
-            'id' => (int) $card['id'],
-            'suit' => (int) $card['type'],
-            'rank' => (int) $card['type_arg'],
+            'id' => (int) $deckCard['id'],
+            'suit' => (int) $deckCard['type'],
+            'rank' => (int) $deckCard['type_arg'],
         ];
     }
 
-    /** @return array[] */
-    public function cardViews(array $cards): array
+    /**
+     * Converts a list of Deck cards into card views, sorted by card id (so the order is always predictable).
+     *
+     * @return array[]
+     */
+    public function cardViews(array $deckCards): array
     {
-        $views = array_map(fn($c) => $this->cardView($c), array_values($cards));
-        usort($views, fn($a, $b) => $a['id'] <=> $b['id']);
-        return $views;
+        $cardViews = array_map(fn($deckCard) => $this->cardView($deckCard), array_values($deckCards));
+        usort($cardViews, fn($first, $second) => $first['id'] <=> $second['id']);
+        return $cardViews;
     }
 
-    public function cardLabel(array $view): string
+    /**
+     * Returns the short text used in the game log for a card, e.g. "7♦" or "K♠".
+     */
+    public function cardLabel(array $cardView): string
     {
-        return self::RANK_LABELS[$view['rank']] . self::SUIT_SYMBOLS[$view['suit']];
+        return self::RANK_LABEL_BY_RANK[$cardView['rank']] . self::SUIT_SYMBOL_BY_SUIT[$cardView['suit']];
     }
 
-    /** @return array[] */
+    /**
+     * Returns the cards currently on the table as card views.
+     *
+     * @return array[]
+     */
     public function tableCards(): array
     {
-        return $this->cardViews($this->cards->getCardsInLocation(self::LOC_TABLE));
+        return $this->cardViews($this->cards->getCardsInLocation(self::LOCATION_TABLE));
     }
 
-    /** @return array<int, int[][]> hand card id => list of legal captures (empty list = discard only) */
+    /**
+     * For each card in the player's hand, lists the captures the player can make with it.
+     * An empty list for a card means that card cannot capture (it can only be put on the table).
+     *
+     * @return array<int, int[][]> hand card id => list of legal captures (each a list of table card ids)
+     */
     public function capturesByCard(int $playerId): array
     {
-        $table = $this->tableCards();
-        $result = [];
-        foreach ($this->cards->getCardsInLocation(self::LOC_HAND, $playerId) as $card) {
-            $result[(int) $card['id']] = ScopaRules::legalCaptures((int) $card['type_arg'], $table);
+        $tableCards = $this->tableCards();
+        $capturesByHandCardId = [];
+        foreach ($this->cards->getCardsInLocation(self::LOCATION_HAND, $playerId) as $handCard) {
+            $capturesByHandCardId[(int) $handCard['id']] = ScopaRules::legalCaptures((int) $handCard['type_arg'], $tableCards);
         }
-        return $result;
+        return $capturesByHandCardId;
     }
 
+    /**
+     * True when the card just played is the very last one of the deal (deck and all hands are empty).
+     * A capture that empties the table on this play is NOT a scopa.
+     */
     public function isLastPlayOfDeal(): bool
     {
-        return $this->cards->countCardInLocation(self::LOC_DECK) === 0
-            && $this->cards->countCardInLocation(self::LOC_HAND) === 0;
+        return $this->cards->countCardInLocation(self::LOCATION_DECK) === 0
+            && $this->cards->countCardInLocation(self::LOCATION_HAND) === 0;
     }
 
-    /** @return array<int, int> player id => cards in hand */
+    /**
+     * Returns how many cards each player holds in their hand (public information).
+     *
+     * @return array<int, int> player id => number of cards in hand
+     */
     public function handCounts(): array
     {
-        $counts = [];
-        foreach (array_keys($this->loadPlayersBasicInfos()) as $pid) {
-            $counts[(int) $pid] = $this->cards->countCardInLocation(self::LOC_HAND, (int) $pid);
+        $handCountByPlayerId = [];
+        foreach (array_keys($this->loadPlayersBasicInfos()) as $playerId) {
+            $handCountByPlayerId[(int) $playerId] = $this->cards->countCardInLocation(self::LOCATION_HAND, (int) $playerId);
         }
-        return $counts;
+        return $handCountByPlayerId;
     }
 
-    /** @return array<int, int> team id => scope made in the current deal */
+    /**
+     * Returns the number of scope made by each team in the current deal.
+     *
+     * @return array<int, int> team id => scope count
+     */
     public function getScope(): array
     {
-        $stored = $this->bga->globals->get('scope', []);
-        $scope = [];
-        foreach (array_keys($this->getTeams()) as $team) {
-            $scope[$team] = (int) ($stored[$team] ?? 0);
+        $storedScopeByTeam = $this->bga->globals->get('scope', []);
+        $scopeByTeam = [];
+        foreach (array_keys($this->getTeams()) as $teamId) {
+            $scopeByTeam[$teamId] = (int) ($storedScopeByTeam[$teamId] ?? 0);
         }
-        return $scope;
+        return $scopeByTeam;
     }
 
-    public function addScopa(int $team): void
+    /**
+     * Adds one scopa to a team for the current deal.
+     */
+    public function addScopa(int $teamId): void
     {
-        $scope = $this->getScope();
-        $scope[$team]++;
-        $this->bga->globals->set('scope', $scope);
+        $scopeByTeam = $this->getScope();
+        $scopeByTeam[$teamId]++;
+        $this->bga->globals->set('scope', $scopeByTeam);
     }
 
     ///////////////////////////////////////////////////
     //// Framework entry points
 
     /**
-     * Progression: points of the leading team plus the fraction of the current deal, relative to the target.
+     * Returns the game progression (0-100) shown to the players: the score of the leading team plus the
+     * fraction of the current deal already played, relative to the target score.
      */
     public function getGameProgression()
     {
-        $target = max(1, $this->targetScore());
-        $best = 0;
-        foreach (array_keys($this->getTeams()) as $team) {
-            $best = max($best, $this->teamScore($team));
+        $targetScore = max(1, $this->targetScore());
+        $bestTeamScore = 0;
+        foreach (array_keys($this->getTeams()) as $teamId) {
+            $bestTeamScore = max($bestTeamScore, $this->teamScore($teamId));
         }
-        $remaining = $this->cards->countCardInLocation(self::LOC_DECK) + $this->cards->countCardInLocation(self::LOC_HAND);
-        $dealFraction = (40 - $remaining) / 40;
-        return (int) min(99, round(100 * ($best + $dealFraction * 3) / ($target + 3)));
+
+        $cardsStillToPlay = $this->cards->countCardInLocation(self::LOCATION_DECK) + $this->cards->countCardInLocation(self::LOCATION_HAND);
+        $fractionOfDealPlayed = (self::DECK_SIZE - $cardsStillToPlay) / self::DECK_SIZE;
+
+        $estimatedPoints = $bestTeamScore + $fractionOfDealPlayed * self::AVERAGE_POINTS_PER_DEAL;
+        $progressionPercent = 100 * $estimatedPoints / ($targetScore + self::AVERAGE_POINTS_PER_DEAL);
+        return (int) min(99, round($progressionPercent));
     }
 
+    /**
+     * Database migration hook: nothing to migrate yet (the game is not published).
+     */
     public function upgradeTableDb($from_version)
     {
     }
 
+    /**
+     * Collects everything the client needs to draw the game, limited to what the given player is allowed to
+     * see (only their own hand). Called on page load and refresh.
+     */
     protected function getAllDatas(int $currentPlayerId): array
     {
-        $result = [];
+        $gameData = [];
 
-        $result['players'] = $this->getCollectionFromDb(
+        $gameData['players'] = $this->getCollectionFromDb(
             "SELECT `player_id` AS `id`, `player_score` AS `score` FROM `player`"
         );
-        foreach ($result['players'] as $pid => &$player) {
-            $player['team'] = $this->teamOf((int) $pid);
+        foreach ($gameData['players'] as $playerId => &$playerData) {
+            $playerData['team'] = $this->teamOf((int) $playerId);
         }
-        unset($player);
+        unset($playerData);
 
-        $captured = [];
-        foreach (array_keys($this->getTeams()) as $team) {
-            $captured[$team] = $this->cards->countCardInLocation(self::LOC_CAPTURED, $team);
+        $capturedCountByTeam = [];
+        $teamNameByTeam = [];
+        foreach (array_keys($this->getTeams()) as $teamId) {
+            $capturedCountByTeam[$teamId] = $this->cards->countCardInLocation(self::LOCATION_CAPTURED, $teamId);
+            $teamNameByTeam[$teamId] = $this->teamName($teamId);
         }
 
-        $result['isTeamGame'] = $this->isTeamGame();
-        $result['teamNames'] = [];
-        foreach (array_keys($this->getTeams()) as $team) {
-            $result['teamNames'][$team] = $this->teamName($team);
-        }
-        $result['target'] = $this->targetScore();
-        $result['dealer'] = $this->getDealerId();
-        $result['dealNo'] = (int) $this->bga->globals->get('deal_no');
-        $result['hand'] = $this->cardViews($this->cards->getCardsInLocation(self::LOC_HAND, $currentPlayerId));
-        $result['table'] = $this->tableCards();
-        $result['handCounts'] = $this->handCounts();
-        $result['deckCount'] = $this->cards->countCardInLocation(self::LOC_DECK);
-        $result['capturedCounts'] = $captured;
-        $result['scope'] = $this->getScope();
+        $gameData['isTeamGame'] = $this->isTeamGame();
+        $gameData['teamNames'] = $teamNameByTeam;
+        $gameData['target'] = $this->targetScore();
+        $gameData['dealer'] = $this->getDealerId();
+        $gameData['dealNo'] = (int) $this->bga->globals->get('deal_no');
+        $gameData['hand'] = $this->cardViews($this->cards->getCardsInLocation(self::LOCATION_HAND, $currentPlayerId));
+        $gameData['table'] = $this->tableCards();
+        $gameData['handCounts'] = $this->handCounts();
+        $gameData['deckCount'] = $this->cards->countCardInLocation(self::LOCATION_DECK);
+        $gameData['capturedCounts'] = $capturedCountByTeam;
+        $gameData['scope'] = $this->getScope();
 
-        return $result;
+        return $gameData;
     }
 
+    /**
+     * Prepares a new game: creates the players, decides the target score and the first dealer, creates the
+     * 40 cards and initialises the statistics. The first deal is started by the NewDeal state.
+     *
+     * @param array $players  players registered at the table, keyed by player id
+     * @param array $options  table options chosen at creation
+     */
     protected function setupNewGame($players, $options = [])
     {
         $gameinfos = $this->getGameinfos();
-        $default_colors = $gameinfos['player_colors'];
+        $availableColors = $gameinfos['player_colors'];
 
-        $query_values = [];
-        foreach ($players as $player_id => $player) {
-            $query_values[] = vsprintf("(%s, '%s', '%s')", [
-                $player_id,
-                array_shift($default_colors),
-                addslashes($player["player_name"]),
+        $playerInsertValues = [];
+        foreach ($players as $playerId => $playerInfo) {
+            $playerInsertValues[] = vsprintf("(%s, '%s', '%s')", [
+                $playerId,
+                array_shift($availableColors),
+                addslashes($playerInfo["player_name"]),
             ]);
         }
 
         $this->DbQuery(
             sprintf(
                 "INSERT INTO `player` (`player_id`, `player_color`, `player_name`) VALUES %s",
-                implode(",", $query_values)
+                implode(",", $playerInsertValues)
             )
         );
 
         $this->reattributeColorsBasedOnPreferences($players, $gameinfos["player_colors"]);
         $this->reloadPlayersBasicInfos();
 
-        // Target score: automatic = 11 (2 players) or 21 (4 players, teams).
-        $option = (int) $this->bga->tableOptions->get(self::OPTION_TARGET_SCORE);
-        $target = match ($option) {
+        // Target score: "automatic" means 11 points with 2 players and 21 points with 4 players (teams).
+        $targetScoreOption = (int) $this->bga->tableOptions->get(self::OPTION_TARGET_SCORE);
+        $targetScore = match ($targetScoreOption) {
             1 => 11,
             2 => 21,
             3 => 31,
             default => count($players) === 4 ? 21 : 11,
         };
-        $this->bga->globals->set('target', $target);
+        $this->bga->globals->set('target', $targetScore);
 
-        // Random first dealer; the dealer rotates from the second deal on.
+        // Random first dealer; from the second deal on the dealer moves to the next player.
         $playerIds = array_keys($players);
         $this->bga->globals->set('dealer', (int) $playerIds[bga_rand(0, count($playerIds) - 1)]);
         $this->bga->globals->set('deal_no', 0);
         $this->bga->globals->set('scope', []);
         $this->bga->globals->set('last_capturer', 0);
 
-        // The 40-card Italian deck: suit in type (1 denari, 2 coppe, 3 bastoni, 4 spade), rank in type_arg.
-        $cards = [];
-        foreach ([1, 2, 3, 4] as $suit) {
+        // The 40-card Italian deck: suit in `type` (1 denari, 2 coppe, 3 bastoni, 4 spade), rank in `type_arg`.
+        $cardsToCreate = [];
+        foreach (ScopaRules::ALL_SUITS as $suit) {
             for ($rank = 1; $rank <= 10; $rank++) {
-                $cards[] = ['type' => $suit, 'type_arg' => $rank, 'nbr' => 1];
+                $cardsToCreate[] = ['type' => $suit, 'type_arg' => $rank, 'nbr' => 1];
             }
         }
-        $this->cards->createCards($cards, self::LOC_DECK);
+        $this->cards->createCards($cardsToCreate, self::LOCATION_DECK);
 
         $this->bga->tableStats->init('deals_played', 0);
         $this->bga->playerStats->init([
@@ -316,7 +433,7 @@ class Game extends \Bga\GameFramework\Table
     }
 
     /**
-     * Debug helper: jump to a state by id (e.g. 95 = EndDeal).
+     * Debug helper (button in the Studio debug panel): jumps to a state by id, e.g. 95 = EndDeal.
      */
     public function debug_goToState(int $state = 3)
     {

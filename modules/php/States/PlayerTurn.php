@@ -12,8 +12,15 @@ use Bga\GameFramework\UserException;
 use Bga\Games\ProjectBiagio\Game;
 use Bga\Games\ProjectBiagio\Rules\ScopaRules;
 
+/**
+ * Game state 10 - the active player plays one card from their hand (passing is not allowed).
+ * If a capture is possible the player must capture; otherwise the card is put on the table.
+ */
 class PlayerTurn extends GameState
 {
+    /**
+     * Declares the state: id 10, played by the single active player.
+     */
     function __construct(
         protected Game $game,
     ) {
@@ -24,24 +31,35 @@ class PlayerTurn extends GameState
     }
 
     /**
-     * The legal captures of each hand card are only sent to the active player (the hand is private).
+     * Builds the state arguments sent to the client. The legal captures of every hand card are put in the
+     * private part, so only the active player receives them (the hand is hidden information).
+     *
+     * @return array{_private: array<int, array{captures: array<int, int[][]>}>}
      */
     public function getArgs(): array
     {
-        $playerId = (int) $this->game->getActivePlayerId();
+        $activePlayerId = (int) $this->game->getActivePlayerId();
         return [
             '_private' => [
-                $playerId => [
-                    'captures' => $this->game->capturesByCard($playerId),
+                $activePlayerId => [
+                    'captures' => $this->game->capturesByCard($activePlayerId),
                 ],
             ],
         ];
     }
 
     /**
-     * Play a card, capturing $capture_ids from the table (empty = no capture, only allowed if no capture is possible).
+     * Action: play a card from the hand and capture the given table cards.
+     * An empty capture list means "put the card on the table" and is only accepted when no capture is possible.
+     * The move is validated on the server with ScopaRules; then the cards move (to the team's captured pile or
+     * to the table), a scopa is counted if the table was emptied (except on the last play of the deal), the
+     * statistics are updated and everybody is notified.
      *
-     * @throws UserException
+     * @param int   $card_id        id of the hand card being played
+     * @param int[] $capture_ids    ids of the table cards to capture (may be empty)
+     * @param int   $activePlayerId filled in automatically by the framework with the acting player
+     * @return string the next state: NextPlayer
+     * @throws UserException if the card is not in the player's hand or the capture is not allowed
      */
     #[PossibleAction]
     public function actPlay(int $card_id, #[IntArrayParam] array $capture_ids, int $activePlayerId)
@@ -49,81 +67,94 @@ class PlayerTurn extends GameState
         $game = $this->game;
         $cards = $game->cards;
 
-        $card = $cards->getCard($card_id);
-        if ($card === null || $card['location'] !== Game::LOC_HAND || (int) $card['location_arg'] !== $activePlayerId) {
+        $playedDeckCard = $cards->getCard($card_id);
+        $isInPlayersHand = $playedDeckCard !== null
+            && $playedDeckCard['location'] === Game::LOCATION_HAND
+            && (int) $playedDeckCard['location_arg'] === $activePlayerId;
+        if (!$isInPlayersHand) {
             throw new UserException(clienttranslate('This card is not in your hand'));
         }
 
-        $played = $game->cardView($card);
-        $table = $game->tableCards();
-        $captureIds = array_values(array_unique(array_map('intval', $capture_ids)));
-        sort($captureIds);
+        $playedCard = $game->cardView($playedDeckCard);
+        $tableCards = $game->tableCards();
+        $capturedCardIds = array_values(array_unique(array_map('intval', $capture_ids)));
+        sort($capturedCardIds);
 
-        if (count($captureIds) === 0) {
-            if (count(ScopaRules::legalCaptures($played['rank'], $table)) > 0) {
+        $wantsToCapture = count($capturedCardIds) > 0;
+        if (!$wantsToCapture) {
+            $captureWasPossible = count(ScopaRules::legalCaptures($playedCard['rank'], $tableCards)) > 0;
+            if ($captureWasPossible) {
                 throw new UserException(clienttranslate('You must capture when a capture is possible'));
             }
-        } elseif (!ScopaRules::isLegalCapture($played['rank'], $table, $captureIds)) {
+        } elseif (!ScopaRules::isLegalCapture($playedCard['rank'], $tableCards, $capturedCardIds)) {
             throw new UserException(clienttranslate('This capture is not allowed'));
         }
 
-        $team = $game->teamOf($activePlayerId);
-        $notifArgs = [
+        $teamId = $game->teamOf($activePlayerId);
+        $commonNotificationArgs = [
             'player_id' => $activePlayerId,
             'player_name' => $game->getPlayerNameById($activePlayerId),
-            'card_label' => $game->cardLabel($played),
-            'card' => $played,
-            'team' => $team,
+            'card_label' => $game->cardLabel($playedCard),
+            'card' => $playedCard,
+            'team' => $teamId,
         ];
 
-        if (count($captureIds) === 0) {
-            $cards->moveCard($card_id, Game::LOC_TABLE);
+        if (!$wantsToCapture) {
+            $cards->moveCard($card_id, Game::LOCATION_TABLE);
             $this->bga->playerStats->inc('discards_count', 1, $activePlayerId);
-            $this->bga->notify->all('cardPlayed', clienttranslate('${player_name} puts ${card_label} on the table'), $notifArgs + [
+            $this->bga->notify->all('cardPlayed', clienttranslate('${player_name} puts ${card_label} on the table'), $commonNotificationArgs + [
                 'captured' => [],
                 'scopa' => false,
-                'handCount' => $cards->countCardInLocation(Game::LOC_HAND, $activePlayerId),
+                'handCount' => $cards->countCardInLocation(Game::LOCATION_HAND, $activePlayerId),
             ]);
             return NextPlayer::class;
         }
 
-        $capturedViews = $game->cardViews($cards->getCards($captureIds));
+        $capturedCardViews = $game->cardViews($cards->getCards($capturedCardIds));
 
-        $cards->moveCards(array_merge([$card_id], $captureIds), Game::LOC_CAPTURED, $team);
-        $this->bga->globals->set('last_capturer', $team);
+        // The played card and the captured ones go to the pile of the player's team.
+        $cards->moveCards(array_merge([$card_id], $capturedCardIds), Game::LOCATION_CAPTURED, $teamId);
+        $this->bga->globals->set('last_capturer', $teamId);
         $this->bga->playerStats->inc('captures_count', 1, $activePlayerId);
 
-        $scopa = $cards->countCardInLocation(Game::LOC_TABLE) === 0 && !$game->isLastPlayOfDeal();
-        $labels = implode(', ', array_map(fn($v) => $game->cardLabel($v), $capturedViews));
+        $tableWasEmptied = $cards->countCardInLocation(Game::LOCATION_TABLE) === 0;
+        $isScopa = $tableWasEmptied && !$game->isLastPlayOfDeal();
+        $capturedLabels = implode(', ', array_map(fn($capturedCardView) => $game->cardLabel($capturedCardView), $capturedCardViews));
 
-        $args = $notifArgs + [
-            'captured' => $capturedViews,
-            'captured_labels' => $labels,
-            'scopa' => $scopa,
-            'handCount' => $cards->countCardInLocation(Game::LOC_HAND, $activePlayerId),
+        $captureNotificationArgs = $commonNotificationArgs + [
+            'captured' => $capturedCardViews,
+            'captured_labels' => $capturedLabels,
+            'scopa' => $isScopa,
+            'handCount' => $cards->countCardInLocation(Game::LOCATION_HAND, $activePlayerId),
         ];
-        if ($scopa) {
-            $game->addScopa($team);
+        if ($isScopa) {
+            $game->addScopa($teamId);
             $this->bga->playerStats->inc('scope_count', 1, $activePlayerId);
-            $args['scopeCount'] = $game->getScope()[$team];
-            $this->bga->notify->all('cardPlayed', clienttranslate('${player_name} plays ${card_label}, captures ${captured_labels} and makes a SCOPA!'), $args);
+            $captureNotificationArgs['scopeCount'] = $game->getScope()[$teamId];
+            $this->bga->notify->all('cardPlayed', clienttranslate('${player_name} plays ${card_label}, captures ${captured_labels} and makes a SCOPA!'), $captureNotificationArgs);
         } else {
-            $this->bga->notify->all('cardPlayed', clienttranslate('${player_name} plays ${card_label} and captures ${captured_labels}'), $args);
+            $this->bga->notify->all('cardPlayed', clienttranslate('${player_name} plays ${card_label} and captures ${captured_labels}'), $captureNotificationArgs);
         }
 
         return NextPlayer::class;
     }
 
     /**
-     * Zombie level 1: random card, random legal capture (or a plain discard when no capture is possible).
+     * Zombie mode (player left or timed out), level 1: plays a random hand card with a random legal capture,
+     * or just puts the card on the table when it cannot capture. Runs on the server without a current player,
+     * so it calls actPlay with the explicit player id.
+     *
+     * @param int $playerId the zombie player
+     * @return string the next state: NextPlayer
      */
     function zombie(int $playerId)
     {
-        $captures = $this->game->capturesByCard($playerId);
-        $cardIds = array_keys($captures);
-        $cardId = $cardIds[bga_rand(0, count($cardIds) - 1)];
-        $options = $captures[$cardId];
-        $capture = count($options) > 0 ? $options[bga_rand(0, count($options) - 1)] : [];
-        return $this->actPlay($cardId, $capture, $playerId);
+        $capturesByHandCardId = $this->game->capturesByCard($playerId);
+        $handCardIds = array_keys($capturesByHandCardId);
+        $chosenCardId = $handCardIds[bga_rand(0, count($handCardIds) - 1)];
+
+        $availableCaptures = $capturesByHandCardId[$chosenCardId];
+        $chosenCapture = count($availableCaptures) > 0 ? $availableCaptures[bga_rand(0, count($availableCaptures) - 1)] : [];
+        return $this->actPlay($chosenCardId, $chosenCapture, $playerId);
     }
 }

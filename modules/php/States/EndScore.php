@@ -7,11 +7,18 @@ namespace Bga\Games\ProjectBiagio\States;
 use Bga\GameFramework\StateType;
 use Bga\Games\ProjectBiagio\Game;
 
+/** Id of the framework's final state: entering it ends the game and shows the ranking. */
 const ST_END_GAME = 99;
 
+/**
+ * Game state 98 - last state before the end of the game.
+ * Scores are already written at the end of each deal, so it only hands over to the framework's end state.
+ */
 class EndScore extends \Bga\GameFramework\States\GameState
 {
-
+    /**
+     * Declares the state: id 98, a game state (no player action).
+     */
     function __construct(
         protected Game $game,
     ) {
@@ -22,13 +29,12 @@ class EndScore extends \Bga\GameFramework\States\GameState
     }
 
     /**
-     * Game state action, example content.
+     * Runs just before the end of the game; the final scores are already stored in the players' scores.
      *
-     * The onEnteringState method of state `EndScore` is called just before the end of the game.
+     * @return int the framework's end-of-game state
      */
-    public function onEnteringState() {
-        // Here, we would compute scores if they are not updated live, and compute average statistics
-
+    public function onEnteringState()
+    {
         return ST_END_GAME;
     }
 }
