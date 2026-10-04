@@ -389,3 +389,22 @@
 .scopa-role-badge--opponent {
     background: #b5473a;
 }
+
+/* ---------- Schermi stretti (telefoni) ---------- */
+
+// Con poco spazio le carte si rimpiccioliscono, così anche la mano da 10 carte resta leggibile.
+@media (max-width: 760px) {
+    :root {
+        --scopa-card-width: 56px;
+    }
+
+    #scopa-hand {
+        gap: 4px;
+    }
+
+    #scopa-table {
+        min-width: 0;
+        gap: 5px;
+        padding: 8px;
+    }
+}

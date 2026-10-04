@@ -106,8 +106,6 @@ class EndDeal extends GameState
         }
 
         $winnerTeamId = ScopaRules::gameWinner($totalScoreByTeam, $game->targetScore());
-        // TEST: con Game::TEST_SINGLE_DEAL la partita finisce dopo la prima smazzata.
-        $gameIsOver = $winnerTeamId !== null || Game::TEST_SINGLE_DEAL;
-        return $gameIsOver ? EndScore::class : NewDeal::class;
+        return $winnerTeamId !== null ? EndScore::class : NewDeal::class;
     }
 }
