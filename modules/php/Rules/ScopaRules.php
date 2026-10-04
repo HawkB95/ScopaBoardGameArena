@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace Bga\Games\ProjectBiagio\Rules;
 
 /**
- * Pure Scopa rules: no dependency on the BGA framework, so it can be unit-tested with plain php
- * (see tests/ScopaRulesTest.php).
+ * Regole pure della Scopa: nessuna dipendenza dal framework BGA, quindi si possono provare con il solo php
+ * (vedi tests/ScopaRulesTest.php).
  *
- * A "card" is always an array with the keys:
- *  - 'id'   : unique card id
- *  - 'suit' : 1 denari, 2 coppe, 3 bastoni, 4 spade
- *  - 'rank' : 1..10 (Ace = 1, Fante/Jack = 8, Cavallo/Queen = 9, Re/King = 10); the rank is also the capture value
+ * Una "carta" è sempre un array con le chiavi:
+ *  - 'id'   : identificativo univoco della carta
+ *  - 'suit' : seme, 1 denari, 2 coppe, 3 bastoni, 4 spade
+ *  - 'rank' : valore 1..10 (Asso = 1, Fante = 8, Cavallo = 9, Re = 10); è anche il valore usato per le prese
  */
 class ScopaRules
 {
@@ -25,28 +25,28 @@ class ScopaRules
     public const RANK_SEVEN = 7;
     public const RANK_KING = 10;
 
-    /** Minimum number of denari cards needed to win the "denari" point. */
+    /** Numero minimo di carte di denari per vincere il punto "denari". */
     public const MIN_DENARI_FOR_POINT = 6;
 
-    /** Minimum number of captured cards needed to win the "carte" point. */
+    /** Numero minimo di carte prese per vincere il punto "carte". */
     public const MIN_CARDS_FOR_POINT = 21;
 
-    /** Value of each rank when computing the primiera (rank => primiera value). */
+    /** Valore di ogni carta nel calcolo della primiera (valore della carta => punti primiera). */
     private const PRIMIERA_VALUE_BY_RANK = [
         1 => 16, 2 => 12, 3 => 13, 4 => 14, 5 => 15, 6 => 18, 7 => 21, 8 => 10, 9 => 10, 10 => 10,
     ];
 
     /**
-     * Returns every capture the player may legally make when playing a card of the given rank on the table.
+     * Restituisce tutte le prese lecite quando si gioca una carta del valore indicato sul tavolo.
      *
-     * - If the table holds card(s) of the same rank, the player MUST take exactly one of them
-     *   (so the result is one single-card capture for each such card).
-     * - Otherwise any group of table cards whose ranks sum to the played rank is allowed.
-     * - An empty result means no capture is possible: the card can only be put on the table.
+     * - Se sul tavolo c'è almeno una carta dello stesso valore, si DEVE prendere esattamente una di quelle
+     *   (il risultato contiene una presa da una sola carta per ognuna di esse).
+     * - Altrimenti è lecito qualunque gruppo di carte del tavolo la cui somma è uguale al valore giocato.
+     * - Un risultato vuoto significa che non esiste nessuna presa: la carta può solo essere posata sul tavolo.
      *
-     * @param int     $playedRank the rank of the card the player is playing
-     * @param array[] $tableCards the cards currently on the table
-     * @return int[][] list of captures, each one a list of table card ids sorted by id
+     * @param int     $playedRank il valore della carta che il giocatore sta giocando
+     * @param array[] $tableCards le carte attualmente sul tavolo
+     * @return int[][] elenco di prese, ognuna è un elenco di id di carte del tavolo ordinati
      */
     public static function legalCaptures(int $playedRank, array $tableCards): array
     {
@@ -69,14 +69,15 @@ class ScopaRules
     }
 
     /**
-     * Recursive helper of legalCaptures: finds every non-empty group of cards whose ranks sum to a target value.
-     * Each group is built by always choosing cards in increasing index order, so no group appears twice.
+     * Funzione di supporto ricorsiva di legalCaptures: trova ogni gruppo non vuoto di carte la cui somma
+     * è uguale al valore cercato. Ogni gruppo è costruito scegliendo le carte in ordine di indice crescente,
+     * così nessun gruppo compare due volte.
      *
-     * @param array[] $candidateCards   the table cards, sorted by id
-     * @param int     $startIndex       first index of $candidateCards that may still be added to the group
-     * @param int     $remainingValue   value still missing to reach the target (0 = group complete)
-     * @param int[]   $currentGroupIds  ids of the cards already in the group being built
-     * @param int[][] $matchingGroups   (output) every complete group found
+     * @param array[] $candidateCards   le carte del tavolo, ordinate per id
+     * @param int     $startIndex       primo indice di $candidateCards ancora aggiungibile al gruppo
+     * @param int     $remainingValue   valore ancora mancante per arrivare alla somma cercata (0 = gruppo completo)
+     * @param int[]   $currentGroupIds  id delle carte già inserite nel gruppo in costruzione
+     * @param int[][] $matchingGroups   (output) tutti i gruppi completi trovati
      */
     private static function collectSubsetsWithSum(
         array $candidateCards,
@@ -101,12 +102,12 @@ class ScopaRules
     }
 
     /**
-     * Tells whether the chosen group of table cards is one of the legal captures for the played rank.
-     * The order of the ids is irrelevant.
+     * Dice se il gruppo di carte del tavolo scelto è una delle prese lecite per il valore giocato.
+     * L'ordine degli id non conta.
      *
-     * @param int     $playedRank  the rank of the card being played
-     * @param array[] $tableCards  the cards currently on the table
-     * @param int[]   $chosenCardIds ids of the table cards the player wants to capture
+     * @param int     $playedRank    il valore della carta che si sta giocando
+     * @param array[] $tableCards    le carte attualmente sul tavolo
+     * @param int[]   $chosenCardIds id delle carte del tavolo che il giocatore vuole prendere
      */
     public static function isLegalCapture(int $playedRank, array $tableCards, array $chosenCardIds): bool
     {
@@ -121,10 +122,10 @@ class ScopaRules
     }
 
     /**
-     * With two players, 4 cards are dealt face up; if three or more of them are kings no scopa would ever
-     * be possible, so the deal must be redone.
+     * Con due giocatori si scoprono 4 carte sul tavolo; se tre o più sono Re non sarebbe mai possibile
+     * fare scopa, quindi la distribuzione va rifatta.
      *
-     * @param array[] $initialTableCards the 4 cards dealt on the table
+     * @param array[] $initialTableCards le 4 carte scoperte sul tavolo
      */
     public static function needsRedeal(array $initialTableCards): bool
     {
@@ -138,11 +139,11 @@ class ScopaRules
     }
 
     /**
-     * Computes the primiera total of a set of captured cards: the sum, over the four suits, of the best
-     * primiera value in that suit.
+     * Calcola il totale di primiera di un insieme di carte prese: la somma, sui quattro semi, del miglior
+     * valore di primiera posseduto in quel seme.
      *
-     * @param array[] $capturedCards all the cards captured by a team
-     * @return int|null the primiera total, or null if at least one suit is missing (the team cannot compete)
+     * @param array[] $capturedCards tutte le carte prese da una squadra
+     * @return int|null il totale di primiera, oppure null se manca almeno un seme (la squadra non concorre)
      */
     public static function primieraScore(array $capturedCards): ?int
     {
@@ -163,14 +164,14 @@ class ScopaRules
     }
 
     /**
-     * Scores a finished deal. Points: scope (1 each), settebello, primiera, denari, carte.
-     * For primiera, denari and carte a tie gives the point to nobody.
+     * Assegna i punti di una smazzata conclusa: scope (1 ciascuna), settebello, primiera, denari, carte.
+     * Per primiera, denari e carte un pareggio non dà il punto a nessuno.
      *
      * @param array<int|string, array{cards: array[], scope: int}> $capturedByTeam
-     *        for each team id: all its captured cards and the number of scope it made
+     *        per ogni squadra: tutte le carte prese e il numero di scope fatte
      * @return array<int|string, array{scope:int, settebello:int, primiera:int, denari:int, carte:int, total:int,
      *                                 cardCount:int, denariCount:int, primieraValue:?int}>
-     *         for each team id: points per category, total points and the counts used to compute them
+     *         per ogni squadra: punti per categoria, punti totali e i conteggi usati per calcolarli
      */
     public static function scoreDeal(array $capturedByTeam): array
     {
@@ -213,11 +214,11 @@ class ScopaRules
     }
 
     /**
-     * Finds the team that wins the primiera point: the one with the highest complete primiera total.
-     * Teams missing a suit cannot win; a tie for the best total gives the point to nobody.
+     * Trova la squadra che vince il punto della primiera: quella con il totale di primiera completo più alto.
+     * Le squadre a cui manca un seme non possono vincere; se il totale migliore è pari il punto non va a nessuno.
      *
-     * @param array $scoreByTeam per team, an array containing at least 'primieraValue' (int or null)
-     * @return int|string|null the winning team id, or null if nobody wins the point
+     * @param array $scoreByTeam per ogni squadra, un array che contiene almeno 'primieraValue' (int o null)
+     * @return int|string|null l'id della squadra vincitrice, oppure null se nessuno vince il punto
      */
     private static function findPrimieraWinner(array $scoreByTeam)
     {
@@ -239,12 +240,12 @@ class ScopaRules
     }
 
     /**
-     * Decides whether the game is over: a team wins when it has reached the target score AND is strictly
-     * ahead of every other team. Otherwise another deal is played (this also handles ties).
+     * Decide se la partita è finita: vince una squadra se ha raggiunto il punteggio obiettivo ED è
+     * strettamente in testa rispetto alle altre. Altrimenti si gioca un'altra smazzata (vale anche per i pareggi).
      *
-     * @param array<int|string, int> $totalScoreByTeam current total score of each team
-     * @param int                    $targetScore      points needed to win
-     * @return int|string|null the winning team id, or null if the game goes on
+     * @param array<int|string, int> $totalScoreByTeam punteggio totale attuale di ogni squadra
+     * @param int                    $targetScore      punti necessari per vincere
+     * @return int|string|null l'id della squadra vincitrice, oppure null se la partita continua
      */
     public static function gameWinner(array $totalScoreByTeam, int $targetScore)
     {

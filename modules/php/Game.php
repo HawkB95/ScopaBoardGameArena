@@ -10,16 +10,18 @@
  *
  * Game.php
  *
- * Scopa: main game class. It holds the game setup, the data sent to the client and the helpers shared by the
- * game states (teams, seating, cards, scope). The pure rules (captures, scoring) are in Rules/ScopaRules.php.
+ * Scopa: classe principale del gioco. Contiene la preparazione della partita, i dati inviati al client e le
+ * funzioni condivise dagli stati di gioco (squadre, posti, carte, scope). Le regole pure (prese, punteggi)
+ * sono in Rules/ScopaRules.php.
  *
- * Card storage (Deck component, table `scopa_card`):
- *  - card type     = suit (1 denari, 2 coppe, 3 bastoni, 4 spade)
- *  - card type_arg = rank (1..10)
- *  - locations     : 'deck', 'hand' (arg = player id), 'table', 'captured' (arg = team id)
+ * Come sono salvate le carte (componente Deck, tabella `scopa_card`):
+ *  - card type     = seme (1 denari, 2 coppe, 3 bastoni, 4 spade)
+ *  - card type_arg = valore (1..10)
+ *  - posizioni     : 'deck' (mazzo), 'hand' (mano, arg = id giocatore), 'table' (tavolo),
+ *                    'captured' (carte prese, arg = id squadra)
  *
- * Teams: with 2 players each player is a team (team id = seat number); with 4 players seats 1&3 are team 1
- * and seats 2&4 are team 2.
+ * Squadre: con 2 giocatori ogni giocatore è una squadra (id squadra = numero del posto); con 4 giocatori
+ * i posti 1 e 3 formano la squadra 1, i posti 2 e 4 la squadra 2.
  */
 declare(strict_types=1);
 
@@ -30,7 +32,7 @@ use Bga\Games\ProjectBiagio\States\NewDeal;
 
 class Game extends \Bga\GameFramework\Table
 {
-    /** Id of the "target score" table option (see gameoptions.jsonc). */
+    /** Id dell'opzione di tavolo "punteggio obiettivo" (vedi gameoptions.jsonc). */
     public const OPTION_TARGET_SCORE = 100;
 
     public const LOCATION_DECK = 'deck';
@@ -38,25 +40,25 @@ class Game extends \Bga\GameFramework\Table
     public const LOCATION_TABLE = 'table';
     public const LOCATION_CAPTURED = 'captured';
 
-    /** Symbol shown in the game log for each suit (suit id => symbol). */
+    /** Simbolo mostrato nel log per ogni seme (id seme => simbolo). */
     private const SUIT_SYMBOL_BY_SUIT = [1 => '♦', 2 => '♥', 3 => '♣', 4 => '♠'];
 
-    /** Short label shown in the game log for each rank (rank => label). */
+    /** Etichetta breve mostrata nel log per ogni valore (valore => etichetta). */
     private const RANK_LABEL_BY_RANK = [1 => 'A', 2 => '2', 3 => '3', 4 => '4', 5 => '5', 6 => '6', 7 => '7', 8 => 'J', 9 => 'Q', 10 => 'K'];
 
-    /** Number of cards in the deck. */
+    /** Numero di carte del mazzo. */
     private const DECK_SIZE = 40;
 
-    /** Rough average of the points scored in one deal, used only to estimate the game progression. */
+    /** Media approssimativa dei punti fatti in una smazzata, usata solo per stimare l'avanzamento della partita. */
     private const AVERAGE_POINTS_PER_DEAL = 3;
 
     public \Bga\GameFramework\Components\Deck $cards;
 
-    /** @var array<int, int[]>|null cache: team id => ids of the players of that team, in table order */
+    /** @var array<int, int[]>|null cache: id squadra => id dei giocatori della squadra, in ordine di tavolo */
     private ?array $playerIdsByTeamCache = null;
 
     /**
-     * Creates the Deck component bound to the `scopa_card` table. It must be created here, not in setup.
+     * Crea il componente Deck collegato alla tabella `scopa_card`. Va creato qui, non nel setup.
      */
     public function __construct()
     {
@@ -66,10 +68,10 @@ class Game extends \Bga\GameFramework\Table
     }
 
     ///////////////////////////////////////////////////
-    //// Teams and seating
+    //// Squadre e posti
 
     /**
-     * True when the game is played by 4 players in two teams of two.
+     * Vero quando si gioca in 4 giocatori divisi in due squadre da due.
      */
     public function isTeamGame(): bool
     {
@@ -77,8 +79,8 @@ class Game extends \Bga\GameFramework\Table
     }
 
     /**
-     * Returns the team (1 or 2) of a player. With 2 players the team is the seat number; with 4 players
-     * partners sit opposite each other (seats 1&3 are team 1, seats 2&4 are team 2).
+     * Restituisce la squadra (1 o 2) di un giocatore. Con 2 giocatori la squadra è il numero del posto; con
+     * 4 giocatori i compagni siedono di fronte (posti 1 e 3 = squadra 1, posti 2 e 4 = squadra 2).
      */
     public function teamOf(int $playerId): int
     {
@@ -87,9 +89,10 @@ class Game extends \Bga\GameFramework\Table
     }
 
     /**
-     * Returns the players of every team, keyed by team id (cached after the first call).
+     * Restituisce i giocatori di ogni squadra, indicizzati per id squadra (il risultato è messo in cache
+     * dopo la prima chiamata).
      *
-     * @return array<int, int[]> team id => player ids in table order
+     * @return array<int, int[]> id squadra => id dei giocatori in ordine di tavolo
      */
     public function getTeams(): array
     {
@@ -107,7 +110,7 @@ class Game extends \Bga\GameFramework\Table
     }
 
     /**
-     * Returns the ids of the players belonging to a team.
+     * Restituisce gli id dei giocatori che appartengono a una squadra.
      *
      * @return int[]
      */
@@ -117,7 +120,7 @@ class Game extends \Bga\GameFramework\Table
     }
 
     /**
-     * Returns a readable name for a team: the names of its players joined by " & ".
+     * Restituisce un nome leggibile per la squadra: i nomi dei suoi giocatori uniti da " & ".
      */
     public function teamName(int $teamId): string
     {
@@ -126,7 +129,8 @@ class Game extends \Bga\GameFramework\Table
     }
 
     /**
-     * Returns the current total score of a team. Every member has the same score, so the first one is read.
+     * Restituisce il punteggio totale attuale di una squadra. Tutti i membri hanno lo stesso punteggio,
+     * quindi si legge quello del primo.
      */
     public function teamScore(int $teamId): int
     {
@@ -135,10 +139,10 @@ class Game extends \Bga\GameFramework\Table
     }
 
     /**
-     * Returns all the players in turn order, starting from the player who leads the hand
-     * (the player after the dealer).
+     * Restituisce tutti i giocatori in ordine di turno, a partire da chi apre la mano
+     * (il giocatore dopo il mazziere).
      *
-     * @return int[] player ids
+     * @return int[] id dei giocatori
      */
     public function playersFromFirst(): array
     {
@@ -152,7 +156,7 @@ class Game extends \Bga\GameFramework\Table
     }
 
     /**
-     * Returns the id of the current dealer.
+     * Restituisce l'id del mazziere attuale.
      */
     public function getDealerId(): int
     {
@@ -160,8 +164,8 @@ class Game extends \Bga\GameFramework\Table
     }
 
     /**
-     * Returns the id of the player who leads every hand of the deal: the player after the dealer
-     * in the BGA table order.
+     * Restituisce l'id del giocatore che apre ogni mano della smazzata: quello dopo il mazziere
+     * nell'ordine di tavolo di BGA.
      */
     public function getFirstPlayerId(): int
     {
@@ -169,8 +173,8 @@ class Game extends \Bga\GameFramework\Table
     }
 
     /**
-     * Number of cards dealt to each player at once: 3 with two players (several rounds of dealing),
-     * 10 with four players (the whole deck is dealt in one go).
+     * Numero di carte date a ogni giocatore in una volta: 3 con 2 giocatori (più giri di distribuzione),
+     * 10 con 4 giocatori (tutto il mazzo è distribuito in una volta sola).
      */
     public function handSize(): int
     {
@@ -178,7 +182,7 @@ class Game extends \Bga\GameFramework\Table
     }
 
     /**
-     * Returns the number of points a team must reach to win the game.
+     * Restituisce i punti che una squadra deve raggiungere per vincere la partita.
      */
     public function targetScore(): int
     {
@@ -186,11 +190,11 @@ class Game extends \Bga\GameFramework\Table
     }
 
     ///////////////////////////////////////////////////
-    //// Cards
+    //// Carte
 
     /**
-     * Converts a card as returned by the Deck component into the format used by the client and by ScopaRules
-     * (id, suit, rank).
+     * Converte una carta restituita dal componente Deck nel formato usato dal client e da ScopaRules
+     * (id, seme, valore).
      *
      * @return array{id:int, suit:int, rank:int}
      */
@@ -204,7 +208,8 @@ class Game extends \Bga\GameFramework\Table
     }
 
     /**
-     * Converts a list of Deck cards into card views, sorted by card id (so the order is always predictable).
+     * Converte un elenco di carte del Deck in carte per il client, ordinate per id
+     * (così l'ordine è sempre prevedibile).
      *
      * @return array[]
      */
@@ -216,7 +221,7 @@ class Game extends \Bga\GameFramework\Table
     }
 
     /**
-     * Returns the short text used in the game log for a card, e.g. "7♦" or "K♠".
+     * Restituisce il testo breve usato nel log per una carta, per esempio "7♦" o "K♠".
      */
     public function cardLabel(array $cardView): string
     {
@@ -224,7 +229,7 @@ class Game extends \Bga\GameFramework\Table
     }
 
     /**
-     * Returns the cards currently on the table as card views.
+     * Restituisce le carte attualmente sul tavolo.
      *
      * @return array[]
      */
@@ -234,10 +239,10 @@ class Game extends \Bga\GameFramework\Table
     }
 
     /**
-     * For each card in the player's hand, lists the captures the player can make with it.
-     * An empty list for a card means that card cannot capture (it can only be put on the table).
+     * Per ogni carta nella mano del giocatore elenca le prese possibili con quella carta.
+     * Un elenco vuoto per una carta significa che non può prendere nulla (può solo essere posata sul tavolo).
      *
-     * @return array<int, int[][]> hand card id => list of legal captures (each a list of table card ids)
+     * @return array<int, int[][]> id carta in mano => elenco di prese lecite (ognuna è un elenco di id del tavolo)
      */
     public function capturesByCard(int $playerId): array
     {
@@ -250,8 +255,8 @@ class Game extends \Bga\GameFramework\Table
     }
 
     /**
-     * True when the card just played is the very last one of the deal (deck and all hands are empty).
-     * A capture that empties the table on this play is NOT a scopa.
+     * Vero quando la carta appena giocata è l'ultima della smazzata (mazzo e mani tutti vuoti).
+     * Una presa che svuota il tavolo in questa giocata NON è una scopa.
      */
     public function isLastPlayOfDeal(): bool
     {
@@ -260,9 +265,9 @@ class Game extends \Bga\GameFramework\Table
     }
 
     /**
-     * Returns how many cards each player holds in their hand (public information).
+     * Restituisce quante carte ha in mano ogni giocatore (informazione pubblica).
      *
-     * @return array<int, int> player id => number of cards in hand
+     * @return array<int, int> id giocatore => numero di carte in mano
      */
     public function handCounts(): array
     {
@@ -274,9 +279,9 @@ class Game extends \Bga\GameFramework\Table
     }
 
     /**
-     * Returns the number of scope made by each team in the current deal.
+     * Restituisce il numero di scope fatte da ogni squadra nella smazzata corrente.
      *
-     * @return array<int, int> team id => scope count
+     * @return array<int, int> id squadra => numero di scope
      */
     public function getScope(): array
     {
@@ -289,7 +294,7 @@ class Game extends \Bga\GameFramework\Table
     }
 
     /**
-     * Adds one scopa to a team for the current deal.
+     * Aggiunge una scopa alla squadra per la smazzata corrente.
      */
     public function addScopa(int $teamId): void
     {
@@ -299,11 +304,11 @@ class Game extends \Bga\GameFramework\Table
     }
 
     ///////////////////////////////////////////////////
-    //// Framework entry points
+    //// Punti di ingresso del framework
 
     /**
-     * Returns the game progression (0-100) shown to the players: the score of the leading team plus the
-     * fraction of the current deal already played, relative to the target score.
+     * Restituisce l'avanzamento della partita (0-100) mostrato ai giocatori: punti della squadra in testa
+     * più la frazione di smazzata già giocata, rispetto al punteggio obiettivo.
      */
     public function getGameProgression()
     {
@@ -322,15 +327,16 @@ class Game extends \Bga\GameFramework\Table
     }
 
     /**
-     * Database migration hook: nothing to migrate yet (the game is not published).
+     * Punto di aggancio per le migrazioni del database: per ora non c'è nulla da migrare
+     * (il gioco non è ancora pubblicato).
      */
     public function upgradeTableDb($from_version)
     {
     }
 
     /**
-     * Collects everything the client needs to draw the game, limited to what the given player is allowed to
-     * see (only their own hand). Called on page load and refresh.
+     * Raccoglie tutto ciò che serve al client per disegnare il gioco, limitato a ciò che il giocatore
+     * indicato può vedere (solo la propria mano). Viene chiamata al caricamento e all'aggiornamento della pagina.
      */
     protected function getAllDatas(int $currentPlayerId): array
     {
@@ -367,11 +373,11 @@ class Game extends \Bga\GameFramework\Table
     }
 
     /**
-     * Prepares a new game: creates the players, decides the target score and the first dealer, creates the
-     * 40 cards and initialises the statistics. The first deal is started by the NewDeal state.
+     * Prepara una nuova partita: crea i giocatori, decide il punteggio obiettivo e il primo mazziere, crea le
+     * 40 carte e inizializza le statistiche. La prima smazzata è avviata dallo stato NewDeal.
      *
-     * @param array $players  players registered at the table, keyed by player id
-     * @param array $options  table options chosen at creation
+     * @param array $players  giocatori iscritti al tavolo, indicizzati per id giocatore
+     * @param array $options  opzioni scelte alla creazione del tavolo
      */
     protected function setupNewGame($players, $options = [])
     {
@@ -397,7 +403,7 @@ class Game extends \Bga\GameFramework\Table
         $this->reattributeColorsBasedOnPreferences($players, $gameinfos["player_colors"]);
         $this->reloadPlayersBasicInfos();
 
-        // Target score: "automatic" means 11 points with 2 players and 21 points with 4 players (teams).
+        // Punteggio obiettivo: "automatico" vale 11 punti con 2 giocatori e 21 punti con 4 giocatori (squadre).
         $targetScoreOption = (int) $this->bga->tableOptions->get(self::OPTION_TARGET_SCORE);
         $targetScore = match ($targetScoreOption) {
             1 => 11,
@@ -407,14 +413,14 @@ class Game extends \Bga\GameFramework\Table
         };
         $this->bga->globals->set('target', $targetScore);
 
-        // Random first dealer; from the second deal on the dealer moves to the next player.
+        // Primo mazziere scelto a caso; dalla seconda smazzata il mazziere passa al giocatore successivo.
         $playerIds = array_keys($players);
         $this->bga->globals->set('dealer', (int) $playerIds[bga_rand(0, count($playerIds) - 1)]);
         $this->bga->globals->set('deal_no', 0);
         $this->bga->globals->set('scope', []);
         $this->bga->globals->set('last_capturer', 0);
 
-        // The 40-card Italian deck: suit in `type` (1 denari, 2 coppe, 3 bastoni, 4 spade), rank in `type_arg`.
+        // Il mazzo italiano da 40 carte: seme in `type` (1 denari, 2 coppe, 3 bastoni, 4 spade), valore in `type_arg`.
         $cardsToCreate = [];
         foreach (ScopaRules::ALL_SUITS as $suit) {
             for ($rank = 1; $rank <= 10; $rank++) {
@@ -433,7 +439,8 @@ class Game extends \Bga\GameFramework\Table
     }
 
     /**
-     * Debug helper (button in the Studio debug panel): jumps to a state by id, e.g. 95 = EndDeal.
+     * Funzione di debug (pulsante nel pannello debug di Studio): salta a uno stato dato il suo id,
+     * per esempio 95 = EndDeal.
      */
     public function debug_goToState(int $state = 3)
     {

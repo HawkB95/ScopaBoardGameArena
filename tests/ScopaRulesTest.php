@@ -3,8 +3,8 @@
 declare(strict_types=1);
 
 /**
- * Unit tests of the pure rules engine. Run with: php tests/ScopaRulesTest.php
- * Exits with status 0 if every check passes, 1 otherwise.
+ * Test unitari del motore delle regole. Si lanciano con: php tests/ScopaRulesTest.php
+ * Il programma termina con codice 0 se tutti i controlli passano, 1 altrimenti.
  */
 
 require __DIR__ . '/../modules/php/Rules/ScopaRules.php';
@@ -15,7 +15,7 @@ $failedChecksCount = 0;
 $lastGeneratedCardId = 0;
 
 /**
- * Compares the actual value with the expected one and prints "ok" or "FAIL" with both values.
+ * Confronta il valore ottenuto con quello atteso e stampa "ok" oppure "FAIL" con entrambi i valori.
  */
 function check(string $checkName, $actualValue, $expectedValue): void
 {
@@ -29,7 +29,7 @@ function check(string $checkName, $actualValue, $expectedValue): void
 }
 
 /**
- * Creates a card with a new unique id (default suit: bastoni, which has no special meaning for scoring).
+ * Crea una carta con un nuovo id univoco (seme di default: bastoni, che non ha significato speciale nei punteggi).
  */
 function makeCard(int $rank, int $suit = ScopaRules::SUIT_BASTONI): array
 {
@@ -38,7 +38,7 @@ function makeCard(int $rank, int $suit = ScopaRules::SUIT_BASTONI): array
 }
 
 /**
- * Creates the cards described by a list of [rank, suit] pairs.
+ * Crea le carte descritte da un elenco di coppie [valore, seme].
  */
 function makeCardsFromRankSuitPairs(array $rankSuitPairs): array
 {
@@ -49,13 +49,13 @@ function makeCardsFromRankSuitPairs(array $rankSuitPairs): array
     return $cards;
 }
 
-// ---- Legal captures: the three examples of the official rules ----
+// ---- Prese lecite: i tre esempi del regolamento ----
 
-// Example 1: table 3, 5, 8 and the player plays an 8 -> can only take the 8.
+// Esempio 1: sul tavolo 3, 5, 8 e si gioca un 8 -> si può prendere solo l'8.
 $tableCards = [makeCard(3), makeCard(5), makeCard(8)];
 check('same value forces the single card', ScopaRules::legalCaptures(8, $tableCards), [[$tableCards[2]['id']]]);
 
-// Example 2: table 1, 3, 4, 5 and the player plays a 9 -> {1,3,5} or {4,5}.
+// Esempio 2: sul tavolo 1, 3, 4, 5 e si gioca un 9 -> {1,3,5} oppure {4,5}.
 $tableCards = [makeCard(1), makeCard(3), makeCard(4), makeCard(5)];
 check(
     '9 on 1,3,4,5',
@@ -63,20 +63,20 @@ check(
     [[$tableCards[0]['id'], $tableCards[1]['id'], $tableCards[3]['id']], [$tableCards[2]['id'], $tableCards[3]['id']]]
 );
 
-// Example 3: table 5, 5, 3, 2 and the player plays a 10 -> {5,5} or {5,3,2} with either 5 (3 captures).
+// Esempio 3: sul tavolo 5, 5, 3, 2 e si gioca un 10 -> {5,5} oppure {5,3,2} con uno dei due 5 (3 prese).
 $tableCards = [makeCard(5), makeCard(5), makeCard(3), makeCard(2)];
 check('10 on 5,5,3,2', count(ScopaRules::legalCaptures(10, $tableCards)), 3);
 
-// Two cards with the same rank: the player chooses one, no sum is allowed.
+// Due carte dello stesso valore: se ne sceglie una, la somma non è ammessa.
 $tableCards = [makeCard(4), makeCard(4), makeCard(2), makeCard(2)];
 check('same value: choose either card', ScopaRules::legalCaptures(4, $tableCards), [[$tableCards[0]['id']], [$tableCards[1]['id']]]);
 
-// No capture possible.
+// Nessuna presa possibile.
 $tableCards = [makeCard(10), makeCard(9)];
 check('no capture possible', ScopaRules::legalCaptures(2, $tableCards), []);
 check('empty table', ScopaRules::legalCaptures(5, []), []);
 
-// ---- Validation of a capture chosen by the player ----
+// ---- Validazione di una presa scelta dal giocatore ----
 
 $tableCards = [['id' => 1, 'suit' => 1, 'rank' => 4], ['id' => 2, 'suit' => 1, 'rank' => 5]];
 check('legal capture, ids in any order', ScopaRules::isLegalCapture(9, $tableCards, [2, 1]), true);
@@ -84,7 +84,7 @@ check('legal capture, ids in any order', ScopaRules::isLegalCapture(9, $tableCar
 $tableCards = [['id' => 1, 'suit' => 1, 'rank' => 5], ['id' => 2, 'suit' => 1, 'rank' => 2], ['id' => 3, 'suit' => 1, 'rank' => 3]];
 check('sum forbidden when a card of the same value exists', ScopaRules::isLegalCapture(5, $tableCards, [2, 3]), false);
 
-// ---- Redeal ----
+// ---- Nuova distribuzione ----
 
 check('redeal with 3 kings', ScopaRules::needsRedeal([makeCard(10), makeCard(10), makeCard(10), makeCard(2)]), true);
 check('no redeal with 2 kings', ScopaRules::needsRedeal([makeCard(10), makeCard(10), makeCard(1), makeCard(2)]), false);
@@ -98,9 +98,9 @@ check(
 );
 check('primiera with a missing suit', ScopaRules::primieraScore([makeCard(7, 1), makeCard(7, 2), makeCard(7, 3)]), null);
 
-// ---- Deal scoring ----
+// ---- Punteggio della smazzata ----
 
-// The whole 40-card deck as [rank, suit] pairs.
+// Tutto il mazzo da 40 carte come coppie [valore, seme].
 $fullDeckRankSuitPairs = [];
 foreach (ScopaRules::ALL_SUITS as $suit) {
     for ($rank = 1; $rank <= 10; $rank++) {
@@ -108,7 +108,8 @@ foreach (ScopaRules::ALL_SUITS as $suit) {
     }
 }
 
-// Team A takes denari 1..7 (so it has the settebello and enough denari) plus coppe/spade up to 5; team B takes the rest.
+// La squadra A prende i denari da 1 a 7 (quindi settebello e abbastanza denari) più coppe/spade fino al 5;
+// la squadra B prende il resto.
 $teamACardPairs = [];
 $teamBCardPairs = [];
 foreach ($fullDeckRankSuitPairs as [$rank, $suit]) {
@@ -138,7 +139,7 @@ check(
     2 + $dealScores[0]['settebello'] + $dealScores[0]['primiera'] + $dealScores[0]['denari'] + $dealScores[0]['carte']
 );
 
-// 20 cards each: nobody gets the "carte" point.
+// 20 carte a testa: nessuno prende il punto "carte".
 $evenSplitTeamACardPairs = [];
 $evenSplitTeamBCardPairs = [];
 foreach ($fullDeckRankSuitPairs as $position => $rankSuitPair) {
@@ -154,7 +155,7 @@ $dealScores = ScopaRules::scoreDeal([
 ]);
 check('20-20 split: nobody gets carte', [$dealScores[0]['carte'], $dealScores[1]['carte']], [0, 0]);
 
-// ---- End of game ----
+// ---- Fine partita ----
 
 check('winner: target reached and strictly ahead', ScopaRules::gameWinner([0 => 12, 1 => 8], 11), 0);
 check('no winner below the target', ScopaRules::gameWinner([0 => 9, 1 => 8], 11), null);

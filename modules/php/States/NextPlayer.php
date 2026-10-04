@@ -9,13 +9,13 @@ use Bga\GameFramework\States\GameState;
 use Bga\Games\ProjectBiagio\Game;
 
 /**
- * Game state 90 - end of a player's turn.
- * Either passes the turn to the next player or, when every hand is empty, deals new cards.
+ * Stato di gioco 90 - fine del turno di un giocatore.
+ * Passa il turno al giocatore successivo oppure, quando tutte le mani sono vuote, distribuisce nuove carte.
  */
 class NextPlayer extends GameState
 {
     /**
-     * Declares the state: id 90, a game state that also refreshes the game progression.
+     * Dichiara lo stato: id 90, stato di gioco che aggiorna anche l'avanzamento della partita.
      */
     function __construct(
         protected Game $game,
@@ -28,12 +28,12 @@ class NextPlayer extends GameState
     }
 
     /**
-     * Runs after each played card. Gives some extra time to the player who just played, then:
-     * if all the hands are empty goes to DealHands (which deals again or ends the deal),
-     * otherwise makes the next player in table order active.
+     * Viene eseguita dopo ogni carta giocata. Concede un po' di tempo extra al giocatore che ha appena giocato, poi:
+     * se tutte le mani sono vuote va a DealHands (che distribuisce di nuovo oppure chiude la smazzata),
+     * altrimenti rende attivo il giocatore successivo nell'ordine di tavolo.
      *
-     * @param int $activePlayerId the player who just played
-     * @return string the next state: DealHands or PlayerTurn
+     * @param int $activePlayerId il giocatore che ha appena giocato
+     * @return string lo stato successivo: DealHands oppure PlayerTurn
      */
     function onEnteringState(int $activePlayerId)
     {

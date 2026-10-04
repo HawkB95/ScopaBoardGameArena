@@ -13,13 +13,13 @@ use Bga\Games\ProjectBiagio\Game;
 use Bga\Games\ProjectBiagio\Rules\ScopaRules;
 
 /**
- * Game state 10 - the active player plays one card from their hand (passing is not allowed).
- * If a capture is possible the player must capture; otherwise the card is put on the table.
+ * Stato di gioco 10 - il giocatore attivo gioca una carta dalla sua mano (non si può passare).
+ * Se esiste una presa il giocatore deve prendere; altrimenti la carta viene posata sul tavolo.
  */
 class PlayerTurn extends GameState
 {
     /**
-     * Declares the state: id 10, played by the single active player.
+     * Dichiara lo stato: id 10, giocato dal singolo giocatore attivo.
      */
     function __construct(
         protected Game $game,
@@ -31,8 +31,8 @@ class PlayerTurn extends GameState
     }
 
     /**
-     * Builds the state arguments sent to the client. The legal captures of every hand card are put in the
-     * private part, so only the active player receives them (the hand is hidden information).
+     * Costruisce gli argomenti dello stato inviati al client. Le prese lecite di ogni carta in mano sono nella
+     * parte privata, così le riceve solo il giocatore attivo (la mano è un'informazione nascosta).
      *
      * @return array{_private: array<int, array{captures: array<int, int[][]>}>}
      */
@@ -49,17 +49,17 @@ class PlayerTurn extends GameState
     }
 
     /**
-     * Action: play a card from the hand and capture the given table cards.
-     * An empty capture list means "put the card on the table" and is only accepted when no capture is possible.
-     * The move is validated on the server with ScopaRules; then the cards move (to the team's captured pile or
-     * to the table), a scopa is counted if the table was emptied (except on the last play of the deal), the
-     * statistics are updated and everybody is notified.
+     * Azione: gioca una carta dalla mano e prende le carte del tavolo indicate.
+     * Un elenco di prese vuoto significa "posa la carta sul tavolo" ed è accettato solo se non esiste nessuna presa.
+     * La mossa è validata sul server con ScopaRules; poi le carte si spostano (nella pila delle prese della
+     * squadra oppure sul tavolo), si conta una scopa se il tavolo è stato svuotato (tranne nell'ultima giocata
+     * della smazzata), si aggiornano le statistiche e si avvisano tutti.
      *
-     * @param int   $card_id        id of the hand card being played
-     * @param int[] $capture_ids    ids of the table cards to capture (may be empty)
-     * @param int   $activePlayerId filled in automatically by the framework with the acting player
-     * @return string the next state: NextPlayer
-     * @throws UserException if the card is not in the player's hand or the capture is not allowed
+     * @param int   $card_id        id della carta in mano che si gioca
+     * @param int[] $capture_ids    id delle carte del tavolo da prendere (può essere vuoto)
+     * @param int   $activePlayerId compilato automaticamente dal framework con il giocatore che agisce
+     * @return string lo stato successivo: NextPlayer
+     * @throws UserException se la carta non è nella mano del giocatore o la presa non è lecita
      */
     #[PossibleAction]
     public function actPlay(int $card_id, #[IntArrayParam] array $capture_ids, int $activePlayerId)
@@ -112,7 +112,7 @@ class PlayerTurn extends GameState
 
         $capturedCardViews = $game->cardViews($cards->getCards($capturedCardIds));
 
-        // The played card and the captured ones go to the pile of the player's team.
+        // La carta giocata e quelle prese vanno nella pila della squadra del giocatore.
         $cards->moveCards(array_merge([$card_id], $capturedCardIds), Game::LOCATION_CAPTURED, $teamId);
         $this->bga->globals->set('last_capturer', $teamId);
         $this->bga->playerStats->inc('captures_count', 1, $activePlayerId);
@@ -140,12 +140,12 @@ class PlayerTurn extends GameState
     }
 
     /**
-     * Zombie mode (player left or timed out), level 1: plays a random hand card with a random legal capture,
-     * or just puts the card on the table when it cannot capture. Runs on the server without a current player,
-     * so it calls actPlay with the explicit player id.
+     * Modalità zombie (giocatore uscito o scaduto), livello 1: gioca una carta a caso con una presa lecita a caso,
+     * oppure si limita a posare la carta sul tavolo se non può prendere. Gira sul server senza un giocatore
+     * corrente, quindi chiama actPlay passando esplicitamente l'id del giocatore.
      *
-     * @param int $playerId the zombie player
-     * @return string the next state: NextPlayer
+     * @param int $playerId il giocatore zombie
+     * @return string lo stato successivo: NextPlayer
      */
     function zombie(int $playerId)
     {

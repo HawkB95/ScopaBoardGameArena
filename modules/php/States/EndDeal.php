@@ -10,14 +10,14 @@ use Bga\Games\ProjectBiagio\Game;
 use Bga\Games\ProjectBiagio\Rules\ScopaRules;
 
 /**
- * Game state 95 - end of a deal.
- * Gives the cards left on the table to the last team that captured, scores the deal, updates scores and
- * statistics, and decides whether the game is over or another deal is played.
+ * Stato di gioco 95 - fine di una smazzata.
+ * Assegna le carte rimaste sul tavolo all'ultima squadra che ha preso, calcola i punti della smazzata,
+ * aggiorna punteggi e statistiche e decide se la partita è finita o se se ne gioca un'altra.
  */
 class EndDeal extends GameState
 {
     /**
-     * Declares the state: id 95, a game state that also refreshes the game progression.
+     * Dichiara lo stato: id 95, stato di gioco che aggiorna anche l'avanzamento della partita.
      */
     function __construct(
         protected Game $game,
@@ -30,15 +30,16 @@ class EndDeal extends GameState
     }
 
     /**
-     * Runs when the deck and all the hands are empty:
-     *  1. cards left on the table go to the team that captured last (or, if nobody captured, to the team of
-     *     the player who played last);
-     *  2. every team is scored with ScopaRules::scoreDeal and each member's score and statistics are updated;
-     *  3. one notification per team shows the score breakdown;
-     *  4. if a team reached the target and is strictly ahead the game ends, otherwise a new deal starts.
+     * Viene eseguita quando mazzo e mani sono vuoti:
+     *  1. le carte rimaste sul tavolo vanno alla squadra che ha preso per ultima (se nessuno ha preso, alla
+     *     squadra di chi ha giocato l'ultima carta);
+     *  2. ogni squadra è valutata con ScopaRules::scoreDeal e si aggiornano punteggio e statistiche dei suoi membri;
+     *  3. una notifica per squadra mostra il dettaglio dei punti;
+     *  4. se una squadra ha raggiunto l'obiettivo ed è strettamente in testa la partita finisce, altrimenti
+     *     inizia una nuova smazzata.
      *
-     * @param int $activePlayerId the player who played the last card of the deal
-     * @return string the next state: EndScore or NewDeal
+     * @param int $activePlayerId il giocatore che ha giocato l'ultima carta della smazzata
+     * @return string lo stato successivo: EndScore oppure NewDeal
      */
     public function onEnteringState(int $activePlayerId)
     {
@@ -71,7 +72,7 @@ class EndDeal extends GameState
         foreach ($teamIds as $teamId) {
             $dealScore = $dealScoreByTeam[$teamId];
             foreach ($game->playersOfTeam($teamId) as $playerId) {
-                // null = do not send the default score notification: the 'teamScored' one updates the client.
+                // null = non inviare la notifica di punteggio predefinita: la aggiorna la notifica 'teamScored'.
                 $this->bga->playerScore->inc($playerId, $dealScore['total'], null);
                 $this->bga->playerStats->inc('settebello_count', $dealScore['settebello'], $playerId);
                 $this->bga->playerStats->inc('primiera_count', $dealScore['primiera'], $playerId);

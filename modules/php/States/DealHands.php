@@ -9,14 +9,14 @@ use Bga\GameFramework\States\GameState;
 use Bga\Games\ProjectBiagio\Game;
 
 /**
- * Game state 4 - dealing the hands.
- * Gives cards to every player (3 each with 2 players, 10 each with 4 players) and starts the hand with the
- * player after the dealer. When the deck is empty the deal is over.
+ * Stato di gioco 4 - distribuzione delle mani.
+ * Dà le carte a ogni giocatore (3 a testa con 2 giocatori, 10 a testa con 4 giocatori) e fa iniziare la mano
+ * al giocatore dopo il mazziere. Quando il mazzo è finito la smazzata è conclusa.
  */
 class DealHands extends GameState
 {
     /**
-     * Declares the state: id 4, a game state (no player action).
+     * Dichiara lo stato: id 4, stato di gioco (nessuna azione dei giocatori).
      */
     function __construct(
         protected Game $game,
@@ -28,11 +28,11 @@ class DealHands extends GameState
     }
 
     /**
-     * Runs every time all the hands are empty. If the deck is empty too, the deal is finished (EndDeal).
-     * Otherwise each player receives their cards (privately: only the owner sees them), everybody is told how
-     * many cards each player holds, and the player after the dealer becomes the active player.
+     * Viene eseguita ogni volta che tutte le mani sono vuote. Se anche il mazzo è vuoto la smazzata è finita
+     * (EndDeal). Altrimenti ogni giocatore riceve le sue carte (in privato: le vede solo il proprietario),
+     * tutti sanno quante carte ha in mano ciascuno e il giocatore dopo il mazziere diventa attivo.
      *
-     * @return string the next state: EndDeal or PlayerTurn
+     * @return string lo stato successivo: EndDeal oppure PlayerTurn
      */
     public function onEnteringState()
     {
@@ -56,7 +56,7 @@ class DealHands extends GameState
             'deckCount' => $game->cards->countCardInLocation(Game::LOCATION_DECK),
         ]);
 
-        // The player after the dealer leads every hand of the deal.
+        // Il giocatore dopo il mazziere apre ogni mano della smazzata.
         $game->gamestate->changeActivePlayer($game->getFirstPlayerId());
 
         return PlayerTurn::class;

@@ -10,17 +10,17 @@ use Bga\Games\ProjectBiagio\Game;
 use Bga\Games\ProjectBiagio\Rules\ScopaRules;
 
 /**
- * Game state 3 - start of a new deal.
- * Rotates the dealer, resets the deal counters, shuffles the deck and (with 2 players) puts 4 cards face up
- * on the table. Then moves on to dealing the hands.
+ * Stato di gioco 3 - inizio di una nuova smazzata.
+ * Cambia il mazziere, azzera i contatori della smazzata, mescola il mazzo e (con 2 giocatori) scopre 4 carte
+ * sul tavolo. Poi passa alla distribuzione delle mani.
  */
 class NewDeal extends GameState
 {
-    /** Number of face-up cards put on the table at the start of a 2-player deal. */
+    /** Numero di carte scoperte sul tavolo all'inizio di una smazzata a 2 giocatori. */
     private const INITIAL_TABLE_CARDS_COUNT = 4;
 
     /**
-     * Declares the state: id 3, a game state (no player action).
+     * Dichiara lo stato: id 3, stato di gioco (nessuna azione dei giocatori).
      */
     function __construct(
         protected Game $game,
@@ -32,11 +32,11 @@ class NewDeal extends GameState
     }
 
     /**
-     * Runs when the deal starts: updates the deal number and the dealer (the dealer changes from the second
-     * deal on), collects and shuffles all the cards, deals the initial table cards (2 players only, redoing
-     * the deal if it contains 3 or more kings) and tells the clients about the new deal.
+     * Viene eseguita all'inizio della smazzata: aggiorna il numero di smazzata e il mazziere (cambia dalla
+     * seconda smazzata), raccoglie e mescola tutte le carte, scopre le carte iniziali sul tavolo (solo con
+     * 2 giocatori, rifacendo la distribuzione se ci sono 3 o più Re) e avvisa i client della nuova smazzata.
      *
-     * @return string the next state: DealHands
+     * @return string lo stato successivo: DealHands
      */
     public function onEnteringState()
     {
@@ -52,11 +52,11 @@ class NewDeal extends GameState
         $globals->set('last_capturer', 0);
         $this->bga->tableStats->inc('deals_played', 1);
 
-        // Bring every card back to the deck and shuffle it.
+        // Riporta tutte le carte nel mazzo e mescola.
         $game->cards->moveAllCardsInLocation(null, Game::LOCATION_DECK);
         $game->cards->shuffle(Game::LOCATION_DECK);
 
-        // With 4 players the table starts empty; with 2 players 4 cards go face up (redeal if 3+ kings).
+        // Con 4 giocatori il tavolo parte vuoto; con 2 giocatori si scoprono 4 carte (da rifare se ci sono 3+ Re).
         if (!$game->isTeamGame()) {
             do {
                 $game->cards->moveAllCardsInLocation(Game::LOCATION_TABLE, Game::LOCATION_DECK);

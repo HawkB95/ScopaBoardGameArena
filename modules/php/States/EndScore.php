@@ -7,17 +7,17 @@ namespace Bga\Games\ProjectBiagio\States;
 use Bga\GameFramework\StateType;
 use Bga\Games\ProjectBiagio\Game;
 
-/** Id of the framework's final state: entering it ends the game and shows the ranking. */
+/** Id dello stato finale del framework: entrarci termina la partita e mostra la classifica. */
 const ST_END_GAME = 99;
 
 /**
- * Game state 98 - last state before the end of the game.
- * Scores are already written at the end of each deal, so it only hands over to the framework's end state.
+ * Stato di gioco 98 - ultimo stato prima della fine della partita.
+ * I punteggi sono già scritti alla fine di ogni smazzata, quindi si limita a passare allo stato finale del framework.
  */
 class EndScore extends \Bga\GameFramework\States\GameState
 {
     /**
-     * Declares the state: id 98, a game state (no player action).
+     * Dichiara lo stato: id 98, stato di gioco (nessuna azione dei giocatori).
      */
     function __construct(
         protected Game $game,
@@ -29,9 +29,9 @@ class EndScore extends \Bga\GameFramework\States\GameState
     }
 
     /**
-     * Runs just before the end of the game; the final scores are already stored in the players' scores.
+     * Viene eseguita subito prima della fine della partita; i punteggi finali sono già nei punteggi dei giocatori.
      *
-     * @return int the framework's end-of-game state
+     * @return int lo stato di fine partita del framework
      */
     public function onEnteringState()
     {
