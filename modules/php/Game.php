@@ -32,6 +32,12 @@ use Bga\Games\ProjectBiagio\States\NewDeal;
 
 class Game extends \Bga\GameFramework\Table
 {
+    /**
+     * SOLO PER I TEST: se vero la partita termina dopo la prima smazzata, qualunque sia il punteggio.
+     * Va rimesso a false (o la costante rimossa, con il suo uso in EndDeal) prima di pubblicare il gioco.
+     */
+    public const TEST_SINGLE_DEAL = true;
+
     /** Id dell'opzione di tavolo "punteggio obiettivo" (vedi gameoptions.jsonc). */
     public const OPTION_TARGET_SCORE = 100;
 
