@@ -39,7 +39,7 @@ class NextPlayer extends GameState
     {
         $this->game->giveExtraTime($activePlayerId);
 
-        if ($this->game->cards->countCardInLocation(Game::LOCATION_HAND) === 0) {
+        if ($this->game->countCardsIn(Game::LOCATION_HAND) === 0) {
             return DealHands::class;
         }
 

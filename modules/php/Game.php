@@ -229,6 +229,18 @@ class Game extends \Bga\GameFramework\Table
     }
 
     /**
+     * Conta le carte in una posizione e restituisce sempre un intero. Il componente Deck restituisce il numero
+     * come testo (per esempio "0"), quindi confronti stretti come `=== 0` fallirebbero: si usa sempre questo metodo.
+     *
+     * @param string   $location     posizione delle carte (mazzo, mano, tavolo, prese)
+     * @param int|null $locationArg  argomento della posizione (id giocatore o id squadra), null = tutti
+     */
+    public function countCardsIn(string $location, ?int $locationArg = null): int
+    {
+        return (int) $this->cards->countCardInLocation($location, $locationArg);
+    }
+
+    /**
      * Restituisce le carte attualmente sul tavolo.
      *
      * @return array[]
@@ -260,8 +272,8 @@ class Game extends \Bga\GameFramework\Table
      */
     public function isLastPlayOfDeal(): bool
     {
-        return $this->cards->countCardInLocation(self::LOCATION_DECK) === 0
-            && $this->cards->countCardInLocation(self::LOCATION_HAND) === 0;
+        return $this->countCardsIn(self::LOCATION_DECK) === 0
+            && $this->countCardsIn(self::LOCATION_HAND) === 0;
     }
 
     /**
@@ -273,7 +285,7 @@ class Game extends \Bga\GameFramework\Table
     {
         $handCountByPlayerId = [];
         foreach (array_keys($this->loadPlayersBasicInfos()) as $playerId) {
-            $handCountByPlayerId[(int) $playerId] = $this->cards->countCardInLocation(self::LOCATION_HAND, (int) $playerId);
+            $handCountByPlayerId[(int) $playerId] = $this->countCardsIn(self::LOCATION_HAND, (int) $playerId);
         }
         return $handCountByPlayerId;
     }
@@ -318,7 +330,7 @@ class Game extends \Bga\GameFramework\Table
             $bestTeamScore = max($bestTeamScore, $this->teamScore($teamId));
         }
 
-        $cardsStillToPlay = $this->cards->countCardInLocation(self::LOCATION_DECK) + $this->cards->countCardInLocation(self::LOCATION_HAND);
+        $cardsStillToPlay = $this->countCardsIn(self::LOCATION_DECK) + $this->countCardsIn(self::LOCATION_HAND);
         $fractionOfDealPlayed = (self::DECK_SIZE - $cardsStillToPlay) / self::DECK_SIZE;
 
         $estimatedPoints = $bestTeamScore + $fractionOfDealPlayed * self::AVERAGE_POINTS_PER_DEAL;
@@ -353,7 +365,7 @@ class Game extends \Bga\GameFramework\Table
         $capturedCountByTeam = [];
         $teamNameByTeam = [];
         foreach (array_keys($this->getTeams()) as $teamId) {
-            $capturedCountByTeam[$teamId] = $this->cards->countCardInLocation(self::LOCATION_CAPTURED, $teamId);
+            $capturedCountByTeam[$teamId] = $this->countCardsIn(self::LOCATION_CAPTURED, $teamId);
             $teamNameByTeam[$teamId] = $this->teamName($teamId);
         }
 
@@ -365,7 +377,7 @@ class Game extends \Bga\GameFramework\Table
         $gameData['hand'] = $this->cardViews($this->cards->getCardsInLocation(self::LOCATION_HAND, $currentPlayerId));
         $gameData['table'] = $this->tableCards();
         $gameData['handCounts'] = $this->handCounts();
-        $gameData['deckCount'] = $this->cards->countCardInLocation(self::LOCATION_DECK);
+        $gameData['deckCount'] = $this->countCardsIn(self::LOCATION_DECK);
         $gameData['capturedCounts'] = $capturedCountByTeam;
         $gameData['scope'] = $this->getScope();
 

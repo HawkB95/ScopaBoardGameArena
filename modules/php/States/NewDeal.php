@@ -72,7 +72,7 @@ class NewDeal extends GameState
             'player_name' => $game->getPlayerNameById($dealerId),
             'dealer' => $dealerId,
             'table' => $game->tableCards(),
-            'deckCount' => $game->cards->countCardInLocation(Game::LOCATION_DECK),
+            'deckCount' => $game->countCardsIn(Game::LOCATION_DECK),
         ]);
 
         return DealHands::class;

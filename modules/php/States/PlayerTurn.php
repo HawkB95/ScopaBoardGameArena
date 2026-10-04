@@ -106,7 +106,7 @@ class PlayerTurn extends GameState
             $this->bga->notify->all('cardPlayed', clienttranslate('${player_name} puts ${card_label} on the table'), $commonNotificationArgs + [
                 'captured' => [],
                 'scopa' => false,
-                'handCount' => $cards->countCardInLocation(Game::LOCATION_HAND, $activePlayerId),
+                'handCount' => $game->countCardsIn(Game::LOCATION_HAND, $activePlayerId),
             ]);
             return NextPlayer::class;
         }
@@ -118,7 +118,7 @@ class PlayerTurn extends GameState
         $this->bga->globals->set('last_capturer', $teamId);
         $this->bga->playerStats->inc('captures_count', 1, $activePlayerId);
 
-        $tableWasEmptied = $cards->countCardInLocation(Game::LOCATION_TABLE) === 0;
+        $tableWasEmptied = $game->countCardsIn(Game::LOCATION_TABLE) === 0;
         $isScopa = $tableWasEmptied && !$game->isLastPlayOfDeal();
         $capturedLabels = implode(', ', array_map(fn($capturedCardView) => $game->cardLabel($capturedCardView), $capturedCardViews));
 
@@ -126,7 +126,7 @@ class PlayerTurn extends GameState
             'captured' => $capturedCardViews,
             'captured_labels' => $capturedLabels,
             'scopa' => $isScopa,
-            'handCount' => $cards->countCardInLocation(Game::LOCATION_HAND, $activePlayerId),
+            'handCount' => $game->countCardsIn(Game::LOCATION_HAND, $activePlayerId),
         ];
         if ($isScopa) {
             $game->addScopa($teamId);

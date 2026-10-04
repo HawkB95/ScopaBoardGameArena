@@ -38,7 +38,7 @@ class DealHands extends GameState
     {
         $game = $this->game;
 
-        if ($game->cards->countCardInLocation(Game::LOCATION_DECK) === 0) {
+        if ($game->countCardsIn(Game::LOCATION_DECK) === 0) {
             return EndDeal::class;
         }
 
@@ -53,7 +53,7 @@ class DealHands extends GameState
         $this->bga->notify->all('handsDealt', clienttranslate('Each player receives ${count} cards'), [
             'count' => $cardsPerPlayer,
             'handCounts' => $game->handCounts(),
-            'deckCount' => $game->cards->countCardInLocation(Game::LOCATION_DECK),
+            'deckCount' => $game->countCardsIn(Game::LOCATION_DECK),
         ]);
 
         // Il giocatore dopo il mazziere apre ogni mano della smazzata.
