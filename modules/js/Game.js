@@ -333,9 +333,9 @@ class Game {
     setup(gamedatas) {
         this.gamedatas = gamedatas;
         this.currentPlayerId = this.bga.players.getCurrentPlayerId();
-        this.handCounts = { ...gamedatas.handCounts };
-        this.capturedCounts = { ...gamedatas.capturedCounts };
-        this.scopeCounts = { ...gamedatas.scope };
+        this.handCounts = this.toNumberRecord(gamedatas.handCounts);
+        this.capturedCounts = this.toNumberRecord(gamedatas.capturedCounts);
+        this.scopeCounts = this.toNumberRecord(gamedatas.scope);
         this.buildBoard();
         this.renderDealer(gamedatas.dealer);
         this.renderDeckCount(gamedatas.deckCount);
@@ -346,6 +346,15 @@ class Game {
         this.renderTargetScore(gamedatas.target);
         this.connectCardClicks();
         this.bga.notifications.setupPromiseNotifications({});
+    }
+    /**
+     * Converte in numeri tutti i valori di un oggetto: i dati inviati dal server possono arrivare come testo
+     * (per esempio "2"), e sommandoli si otterrebbe una concatenazione ("2" + 1 = "21") invece di un numero.
+     */
+    toNumberRecord(values) {
+        const numericValues = {};
+        Object.keys(values).forEach(key => numericValues[Number(key)] = Number(values[Number(key)]));
+        return numericValues;
     }
     /**
      * Crea la struttura HTML del gioco: avversari in alto, al centro mazzo + tavolo + pile delle prese,
@@ -535,7 +544,12 @@ class Game {
         const deltaY = startRect.top - endRect.top;
         element.style.zIndex = '20';
         const animation = element.animate([{ transform: `translate(${deltaX}px, ${deltaY}px)` }, { transform: 'none' }], { duration: CARD_MOVE_DURATION_MS, easing: 'ease-in-out' });
-        await animation.finished.catch(() => undefined);
+        // Il limite di tempo evita di bloccare la coda delle notifiche se il browser non porta a termine
+        // l'animazione (per esempio in una tab in secondo piano).
+        await Promise.race([
+            animation.finished.catch(() => undefined),
+            new Promise(resolve => setTimeout(resolve, CARD_MOVE_DURATION_MS + 300)),
+        ]);
         element.style.zIndex = '';
     }
     /**

@@ -43,9 +43,9 @@ export class Game {
     setup(gamedatas: ProjectBiagioGamedatas) {
         this.gamedatas = gamedatas;
         this.currentPlayerId = this.bga.players.getCurrentPlayerId();
-        this.handCounts = { ...gamedatas.handCounts };
-        this.capturedCounts = { ...gamedatas.capturedCounts };
-        this.scopeCounts = { ...gamedatas.scope };
+        this.handCounts = this.toNumberRecord(gamedatas.handCounts);
+        this.capturedCounts = this.toNumberRecord(gamedatas.capturedCounts);
+        this.scopeCounts = this.toNumberRecord(gamedatas.scope);
 
         this.buildBoard();
         this.renderDealer(gamedatas.dealer);
@@ -58,6 +58,16 @@ export class Game {
 
         this.connectCardClicks();
         this.bga.notifications.setupPromiseNotifications({});
+    }
+
+    /**
+     * Converte in numeri tutti i valori di un oggetto: i dati inviati dal server possono arrivare come testo
+     * (per esempio "2"), e sommandoli si otterrebbe una concatenazione ("2" + 1 = "21") invece di un numero.
+     */
+    private toNumberRecord(values: Record<number, number | string>): Record<number, number> {
+        const numericValues: Record<number, number> = {};
+        Object.keys(values).forEach(key => numericValues[Number(key)] = Number(values[Number(key)]));
+        return numericValues;
     }
 
     /**
@@ -270,7 +280,12 @@ export class Game {
             [{ transform: `translate(${deltaX}px, ${deltaY}px)` }, { transform: 'none' }],
             { duration: CARD_MOVE_DURATION_MS, easing: 'ease-in-out' },
         );
-        await animation.finished.catch(() => undefined);
+        // Il limite di tempo evita di bloccare la coda delle notifiche se il browser non porta a termine
+        // l'animazione (per esempio in una tab in secondo piano).
+        await Promise.race([
+            animation.finished.catch(() => undefined),
+            new Promise(resolve => setTimeout(resolve, CARD_MOVE_DURATION_MS + 300)),
+        ]);
         element.style.zIndex = '';
     }
 
