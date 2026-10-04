@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace Bga\Games\ProjectBiagio\States;
 
 use Bga\GameFramework\StateType;
+use Bga\GameFramework\States\GameState;
 use Bga\Games\ProjectBiagio\Game;
 
-class NextPlayer extends \Bga\GameFramework\States\GameState
+class NextPlayer extends GameState
 {
-
     function __construct(
         protected Game $game,
     ) {
@@ -20,24 +20,15 @@ class NextPlayer extends \Bga\GameFramework\States\GameState
         );
     }
 
-    /**
-     * Game state action, example content.
-     *
-     * The onEnteringState method of state `nextPlayer` is called everytime the current game state is set to `nextPlayer`.
-     */
-    function onEnteringState(int $activePlayerId) {
-
-        // Give some extra time to the active player when he completed an action
+    function onEnteringState(int $activePlayerId)
+    {
         $this->game->giveExtraTime($activePlayerId);
-        
-        $this->game->activeNextPlayer();
 
-        // Go to another gamestate
-        $gameEnd = false; // Here, we would detect if the game is over to make the appropriate transition
-        if ($gameEnd) {
-            return EndScore::class;
-        } else {
-            return PlayerTurn::class;
+        if ($this->game->cards->countCardInLocation(Game::LOC_HAND) === 0) {
+            return DealHands::class;
         }
+
+        $this->game->activeNextPlayer();
+        return PlayerTurn::class;
     }
 }

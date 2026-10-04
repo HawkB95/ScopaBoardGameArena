@@ -1,28 +1,46 @@
-{    
-    // Statistics for the table
-    "table": {},
-    
-    // Statistics for each player
-    "player": {
-      /* 
-      EXAMPLE:
-
-      "turns_number": {
-        "id": 10,
-        "name": "Number of turns",
-        "type": "int"
-      },
-      "player_teststat1": {
-        "id": 11,
-        "name": "player test stat 1",
-        "type": "int"
-      },
-      "player_teststat2": {
-        "id": 12,
-        "name": "player test stat 2",
-        "type": "float"
-      }
-      */
-
+{
+  "table": {
+    "deals_played": {
+      "id": 10,
+      "name": "Number of deals",
+      "type": "int"
     }
+  },
+  "player": {
+    "scope_count": {
+      "id": 10,
+      "name": "Scope",
+      "type": "int"
+    },
+    "settebello_count": {
+      "id": 11,
+      "name": "Settebello taken",
+      "type": "int"
+    },
+    "primiera_count": {
+      "id": 12,
+      "name": "Primiera won",
+      "type": "int"
+    },
+    "denari_count": {
+      "id": 13,
+      "name": "Denari won",
+      "type": "int"
+    },
+    "carte_count": {
+      "id": 14,
+      "name": "Carte won",
+      "type": "int"
+    },
+    "captures_count": {
+      "id": 15,
+      "name": "Captures made",
+      "type": "int"
+    },
+    "discards_count": {
+      "id": 16,
+      "name": "Cards put on the table without capturing",
+      "type": "int"
+    }
+  }
 }

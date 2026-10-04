@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Bga\Games\ProjectBiagio\States;
 
+use Bga\GameFramework\Actions\Types\IntArrayParam;
 use Bga\GameFramework\StateType;
 use Bga\GameFramework\States\GameState;
 use Bga\GameFramework\States\PossibleAction;
 use Bga\GameFramework\UserException;
 use Bga\Games\ProjectBiagio\Game;
+use Bga\Games\ProjectBiagio\Rules\ScopaRules;
 
 class PlayerTurn extends GameState
 {
@@ -22,96 +24,106 @@ class PlayerTurn extends GameState
     }
 
     /**
-     * Game state arguments, example content.
-     *
-     * This method returns some additional information that is very specific to the `PlayerTurn` game state.
+     * The legal captures of each hand card are only sent to the active player (the hand is private).
      */
     public function getArgs(): array
     {
-        // Get some values from the current game situation from the database.
-
+        $playerId = (int) $this->game->getActivePlayerId();
         return [
-            "playableCardsIds" => [1, 2],
+            '_private' => [
+                $playerId => [
+                    'captures' => $this->game->capturesByCard($playerId),
+                ],
+            ],
         ];
-    }    
+    }
 
     /**
-     * Player action, example content.
-     *
-     * In this scenario, each time a player plays a card, this method will be called. This method is called directly
-     * by the action trigger on the front side with `bgaPerformAction`.
+     * Play a card, capturing $capture_ids from the table (empty = no capture, only allowed if no capture is possible).
      *
      * @throws UserException
      */
     #[PossibleAction]
-    public function actPlayCard(int $card_id, int $activePlayerId, array $args)
+    public function actPlay(int $card_id, #[IntArrayParam] array $capture_ids, int $activePlayerId)
     {
-        // check input values
-        $playableCardsIds = $args['playableCardsIds'];
-        if (!in_array($card_id, $playableCardsIds)) {
-            throw new UserException('Invalid card choice');
+        $game = $this->game;
+        $cards = $game->cards;
+
+        $card = $cards->getCard($card_id);
+        if ($card === null || $card['location'] !== Game::LOC_HAND || (int) $card['location_arg'] !== $activePlayerId) {
+            throw new UserException(clienttranslate('This card is not in your hand'));
         }
 
-        // Add your game logic to play a card here.
-        $card_name = Game::$CARD_TYPES[$card_id]['card_name'];
+        $played = $game->cardView($card);
+        $table = $game->tableCards();
+        $captureIds = array_values(array_unique(array_map('intval', $capture_ids)));
+        sort($captureIds);
 
-        // Notify all players about the card played.
-        $this->bga->notify->all("cardPlayed", clienttranslate('${player_name} plays ${card_name}'), [
-            "player_id" => $activePlayerId,
-            "player_name" => $this->game->getPlayerNameById($activePlayerId), // remove this line if you uncomment notification decorator
-            "card_name" => $card_name, // remove this line if you uncomment notification decorator
-            "card_id" => $card_id,
-            "i18n" => ['card_name'], // remove this line if you uncomment notification decorator
-        ]);
+        if (count($captureIds) === 0) {
+            if (count(ScopaRules::legalCaptures($played['rank'], $table)) > 0) {
+                throw new UserException(clienttranslate('You must capture when a capture is possible'));
+            }
+        } elseif (!ScopaRules::isLegalCapture($played['rank'], $table, $captureIds)) {
+            throw new UserException(clienttranslate('This capture is not allowed'));
+        }
 
-        // in this example, the player gains 1 points each time he plays a card
-        $this->bga->playerScore->inc($activePlayerId, 1);
+        $team = $game->teamOf($activePlayerId);
+        $notifArgs = [
+            'player_id' => $activePlayerId,
+            'player_name' => $game->getPlayerNameById($activePlayerId),
+            'card_label' => $game->cardLabel($played),
+            'card' => $played,
+            'team' => $team,
+        ];
 
-        // at the end of the action, move to the next state
+        if (count($captureIds) === 0) {
+            $cards->moveCard($card_id, Game::LOC_TABLE);
+            $this->bga->playerStats->inc('discards_count', 1, $activePlayerId);
+            $this->bga->notify->all('cardPlayed', clienttranslate('${player_name} puts ${card_label} on the table'), $notifArgs + [
+                'captured' => [],
+                'scopa' => false,
+                'handCount' => $cards->countCardInLocation(Game::LOC_HAND, $activePlayerId),
+            ]);
+            return NextPlayer::class;
+        }
+
+        $capturedViews = $game->cardViews($cards->getCards($captureIds));
+
+        $cards->moveCards(array_merge([$card_id], $captureIds), Game::LOC_CAPTURED, $team);
+        $this->bga->globals->set('last_capturer', $team);
+        $this->bga->playerStats->inc('captures_count', 1, $activePlayerId);
+
+        $scopa = $cards->countCardInLocation(Game::LOC_TABLE) === 0 && !$game->isLastPlayOfDeal();
+        $labels = implode(', ', array_map(fn($v) => $game->cardLabel($v), $capturedViews));
+
+        $args = $notifArgs + [
+            'captured' => $capturedViews,
+            'captured_labels' => $labels,
+            'scopa' => $scopa,
+            'handCount' => $cards->countCardInLocation(Game::LOC_HAND, $activePlayerId),
+        ];
+        if ($scopa) {
+            $game->addScopa($team);
+            $this->bga->playerStats->inc('scope_count', 1, $activePlayerId);
+            $args['scopeCount'] = $game->getScope()[$team];
+            $this->bga->notify->all('cardPlayed', clienttranslate('${player_name} plays ${card_label}, captures ${captured_labels} and makes a SCOPA!'), $args);
+        } else {
+            $this->bga->notify->all('cardPlayed', clienttranslate('${player_name} plays ${card_label} and captures ${captured_labels}'), $args);
+        }
+
         return NextPlayer::class;
     }
 
     /**
-     * Player action, example content.
-     *
-     * In this scenario, each time a player pass, this method will be called. This method is called directly
-     * by the action trigger on the front side with `bgaPerformAction`.
+     * Zombie level 1: random card, random legal capture (or a plain discard when no capture is possible).
      */
-    #[PossibleAction]
-    public function actPass(int $activePlayerId)
+    function zombie(int $playerId)
     {
-        // Notify all players about the choice to pass.
-        $this->notify->all("pass", clienttranslate('${player_name} passes'), [
-            "player_id" => $activePlayerId,
-            "player_name" => $this->game->getPlayerNameById($activePlayerId), // remove this line if you uncomment notification decorator
-        ]);
-
-        // in this example, the player gains 1 energy each time he passes
-        $this->game->playerEnergy->inc($activePlayerId, 1);
-
-        // at the end of the action, move to the next state
-        return NextPlayer::class;
-    }
-
-    /**
-     * This method is called each time it is the turn of a player who has quit the game (= "zombie" player).
-     * You can do whatever you want in order to make sure the turn of this player ends appropriately
-     * (ex: play a random card).
-     * 
-     * See more about Zombie Mode: https://en.doc.boardgamearena.com/Zombie_Mode
-     *
-     * Important: your zombie code will be called when the player leaves the game. This action is triggered
-     * from the main site and propagated to the gameserver from a server, not from a browser.
-     * As a consequence, there is no current player associated to this action. In your zombieTurn function,
-     * you must _never_ use `getCurrentPlayerId()` or `getCurrentPlayerName()`, 
-     * but use the $playerId passed in parameter and $this->game->getPlayerNameById($playerId) instead.
-     */
-    function zombie(int $playerId) {
-        // Example of zombie level 0: return NextPlayer::class; or $this->actPass($playerId);
-
-        // Example of zombie level 1:
-        $args = $this->getArgs();
-        $zombieChoice = $this->getRandomZombieChoice($args['playableCardsIds']); // random choice over possible moves
-        return $this->actPlayCard($zombieChoice, $playerId, $args); // this function will return the transition to the next state
+        $captures = $this->game->capturesByCard($playerId);
+        $cardIds = array_keys($captures);
+        $cardId = $cardIds[bga_rand(0, count($cardIds) - 1)];
+        $options = $captures[$cardId];
+        $capture = count($options) > 0 ? $options[bga_rand(0, count($options) - 1)] : [];
+        return $this->actPlay($cardId, $capture, $playerId);
     }
 }
