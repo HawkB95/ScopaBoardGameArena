@@ -39,8 +39,6 @@ export class PlayerTurn {
         this.selectedHandCardId = null;
         this.selectedCaptureIds = [];
         this.capturesByCard = args?.captures ?? args?._private?.captures ?? {};
-        // LOG DI DEBUG TEMPORANEO: da rimuovere quando la selezione funziona.
-        console.log('[scopa] PlayerTurn.onEnteringState', { isCurrentPlayerActive, args: JSON.stringify(args), capturesByCard: this.capturesByCard });
 
         if (!isCurrentPlayerActive) {
             this.bga.statusBar.setTitle(_('${actplayer} must play a card'));
@@ -73,8 +71,6 @@ export class PlayerTurn {
      * Se per quella carta esiste una sola presa, la preseleziona.
      */
     onHandCardClick(cardId: number) {
-        // LOG DI DEBUG TEMPORANEO
-        console.log('[scopa] onHandCardClick', { cardId, isActive: this.isActive, captures: this.capturesByCard[cardId] });
         if (!this.isActive || !this.capturesByCard[cardId]) {
             return;
         }
@@ -156,8 +152,6 @@ export class PlayerTurn {
 
         const confirmButton = document.getElementById(CONFIRM_BUTTON_ID);
         const cancelButton = document.getElementById(CANCEL_BUTTON_ID);
-        // LOG DI DEBUG TEMPORANEO
-        console.log('[scopa] refreshSelectionDisplay', { selectedHandCardId: this.selectedHandCardId, confirmButtonFound: !!confirmButton, confirmClasses: confirmButton?.className });
 
         // Nessuna carta in mano selezionata: tutte le carte della mano sono giocabili.
         if (this.selectedHandCardId === null) {
@@ -190,7 +184,6 @@ export class PlayerTurn {
      * Va chiamata solo da un clic del giocatore.
      */
     private onConfirmClick() {
-        console.log('[scopa] onConfirmClick', { selectedHandCardId: this.selectedHandCardId, selectedCaptureIds: this.selectedCaptureIds });
         if (this.selectedHandCardId === null) {
             this.bga.dialogs.showMessage(_('Select a card from your hand first'), 'error');
             return;

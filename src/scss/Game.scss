@@ -195,6 +195,7 @@
 }
 
 #scopa-table {
+    position: relative;
     display: flex;
     flex-wrap: wrap;
     align-content: flex-start;
@@ -291,4 +292,31 @@
 // Aspetto "inattivo" del pulsante di conferma (resta cliccabile: mostra un messaggio se la selezione non è valida).
 .scopa-button-inactive {
     opacity: 0.45;
+}
+
+/* ---------- Annuncio della scopa ---------- */
+
+// Scritta "SCOPA!" al centro del tavolo: compare ingrandita e svanisce.
+.scopa-scopa-banner {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 30;
+    transform: translate(-50%, -50%);
+    padding: 8px 28px;
+    border-radius: 12px;
+    background: rgba(240, 192, 64, 0.95);
+    color: #4a2a00;
+    font-size: 40px;
+    font-weight: bold;
+    letter-spacing: 3px;
+    pointer-events: none;
+    animation: scopa-banner-pop 1.4s ease-out forwards;
+}
+
+@keyframes scopa-banner-pop {
+    0% { transform: translate(-50%, -50%) scale(0.4); opacity: 0; }
+    20% { transform: translate(-50%, -50%) scale(1.15); opacity: 1; }
+    75% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
 }

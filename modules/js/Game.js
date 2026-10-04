@@ -104,8 +104,6 @@ class PlayerTurn {
         this.selectedHandCardId = null;
         this.selectedCaptureIds = [];
         this.capturesByCard = args?.captures ?? args?._private?.captures ?? {};
-        // LOG DI DEBUG TEMPORANEO: da rimuovere quando la selezione funziona.
-        console.log('[scopa] PlayerTurn.onEnteringState', { isCurrentPlayerActive, args: JSON.stringify(args), capturesByCard: this.capturesByCard });
         if (!isCurrentPlayerActive) {
             this.bga.statusBar.setTitle(_('${actplayer} must play a card'));
             return;
@@ -133,8 +131,6 @@ class PlayerTurn {
      * Se per quella carta esiste una sola presa, la preseleziona.
      */
     onHandCardClick(cardId) {
-        // LOG DI DEBUG TEMPORANEO
-        console.log('[scopa] onHandCardClick', { cardId, isActive: this.isActive, captures: this.capturesByCard[cardId] });
         if (!this.isActive || !this.capturesByCard[cardId]) {
             return;
         }
@@ -212,8 +208,6 @@ class PlayerTurn {
         this.clearCardHighlights();
         const confirmButton = document.getElementById(CONFIRM_BUTTON_ID);
         const cancelButton = document.getElementById(CANCEL_BUTTON_ID);
-        // LOG DI DEBUG TEMPORANEO
-        console.log('[scopa] refreshSelectionDisplay', { selectedHandCardId: this.selectedHandCardId, confirmButtonFound: !!confirmButton, confirmClasses: confirmButton?.className });
         // Nessuna carta in mano selezionata: tutte le carte della mano sono giocabili.
         if (this.selectedHandCardId === null) {
             Object.keys(this.capturesByCard).forEach(cardId => this.addClass(Number(cardId), 'scopa-card--playable'));
@@ -241,7 +235,6 @@ class PlayerTurn {
      * Va chiamata solo da un clic del giocatore.
      */
     onConfirmClick() {
-        console.log('[scopa] onConfirmClick', { selectedHandCardId: this.selectedHandCardId, selectedCaptureIds: this.selectedCaptureIds });
         if (this.selectedHandCardId === null) {
             this.bga.dialogs.showMessage(_('Select a card from your hand first'), 'error');
             return;
@@ -305,6 +298,8 @@ class PlayerTurn {
 
 /** Durata in millisecondi degli spostamenti delle carte. */
 const CARD_MOVE_DURATION_MS = 500;
+/** Durata in millisecondi della scritta "SCOPA!" mostrata sul tavolo. */
+const SCOPA_BANNER_DURATION_MS = 1400;
 /** Pausa in millisecondi tra la carta posata sul tavolo e la presa. */
 const PAUSE_BEFORE_CAPTURE_MS = 450;
 /**
@@ -652,10 +647,21 @@ class Game {
         if (args.scopa) {
             this.scopeCounts[teamId] = Number(args.scopeCount);
             document.getElementById(`scopa-pile-${teamId}`)?.classList.add('scopa-pile--scopa');
-            await this.pause(PAUSE_BEFORE_CAPTURE_MS);
+            await this.showScopaBanner(tableElement);
             document.getElementById(`scopa-pile-${teamId}`)?.classList.remove('scopa-pile--scopa');
         }
         this.renderPile(teamId);
+    }
+    /**
+     * Mostra per un attimo la scritta "SCOPA!" al centro del tavolo, poi la toglie.
+     */
+    async showScopaBanner(tableElement) {
+        const bannerElement = document.createElement('div');
+        bannerElement.className = 'scopa-scopa-banner';
+        bannerElement.textContent = _('SCOPA!');
+        tableElement.appendChild(bannerElement);
+        await this.pause(SCOPA_BANNER_DURATION_MS);
+        bannerElement.remove();
     }
     /**
      * Fine smazzata: le carte rimaste sul tavolo vanno alla squadra che ha preso per ultima.

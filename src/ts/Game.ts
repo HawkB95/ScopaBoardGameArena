@@ -3,6 +3,8 @@ import { cardElementId, createCardBackElement, createCardElement, sortCardsForHa
 
 /** Durata in millisecondi degli spostamenti delle carte. */
 const CARD_MOVE_DURATION_MS = 500;
+/** Durata in millisecondi della scritta "SCOPA!" mostrata sul tavolo. */
+const SCOPA_BANNER_DURATION_MS = 1400;
 /** Pausa in millisecondi tra la carta posata sul tavolo e la presa. */
 const PAUSE_BEFORE_CAPTURE_MS = 450;
 
@@ -405,10 +407,22 @@ export class Game {
         if (args.scopa) {
             this.scopeCounts[teamId] = Number(args.scopeCount);
             document.getElementById(`scopa-pile-${teamId}`)?.classList.add('scopa-pile--scopa');
-            await this.pause(PAUSE_BEFORE_CAPTURE_MS);
+            await this.showScopaBanner(tableElement);
             document.getElementById(`scopa-pile-${teamId}`)?.classList.remove('scopa-pile--scopa');
         }
         this.renderPile(teamId);
+    }
+
+    /**
+     * Mostra per un attimo la scritta "SCOPA!" al centro del tavolo, poi la toglie.
+     */
+    private async showScopaBanner(tableElement: HTMLElement) {
+        const bannerElement = document.createElement('div');
+        bannerElement.className = 'scopa-scopa-banner';
+        bannerElement.textContent = _('SCOPA!');
+        tableElement.appendChild(bannerElement);
+        await this.pause(SCOPA_BANNER_DURATION_MS);
+        bannerElement.remove();
     }
 
     /**
