@@ -1,6 +1,6 @@
 # Stato del progetto - Scopa su BGA Studio
 
-Ultimo aggiornamento: 4 ottobre 2026.
+Ultimo aggiornamento: 5 ottobre 2026.
 
 ## Dove siamo
 
@@ -18,6 +18,11 @@ Il gioco è **completo e funzionante** a 2 giocatori e a 4 giocatori a coppie. �
 | 4 | 4 giocatori a coppie (10 carte a testa, tavolo vuoto, squadre, etichette Partner/Opponent) | fatto e provato |
 | 5 | Carte napoletane da sprite (unico stile), CSS per telefoni | fatto |
 | 6 | Metadati, immagini (`doc/media/box.png`, `icon.png`), richiesta PRIVATE ALPHA | richiesta inviata |
+
+**5 ottobre 2026 - revisione generale** (nessuna nuova funzione): codice ripulito e commentato; rimosse le carte francesi e la
+preferenza "Card style"; rimossa l'opzione "Target score" (obiettivo fisso 11/21); log con nomi di carta traducibili al posto
+dei simboli francesi; tipi client dal file ufficiale `bga-framework.d.ts`; eliminati `libs.ts`, `AUTHOR_QUESTIONS.md` e i
+README del template. Da verificare su Studio: il log con i nomi annidati e il Reload senza opzioni/preferenze.
 
 Non è stato fatto, per scelta: il riepilogo di fine smazzata in una finestra (basta il log di gioco).
 
