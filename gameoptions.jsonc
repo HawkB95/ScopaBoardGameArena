@@ -1,25 +1,4 @@
 {
-  // option ids should be between 100 and 199
-  "100": {
-    "name": "Target score",
-    "values": {
-      "0": {
-        "name": "Automatic (11 points with 2 players, 21 with 4 players)",
-        "tmdisplay": ""
-      },
-      "1": {
-        "name": "11 points",
-        "tmdisplay": "Target: 11 points"
-      },
-      "2": {
-        "name": "21 points",
-        "tmdisplay": "Target: 21 points"
-      },
-      "3": {
-        "name": "31 points",
-        "tmdisplay": "Target: 31 points"
-      }
-    },
-    "default": 0
-  }
+  // Nessuna opzione di tavolo: il punteggio obiettivo e' fisso (11 punti con 2 giocatori, 21 con 4).
+  // Gli id delle opzioni, se ne servissero, vanno da 100 a 199.
 }

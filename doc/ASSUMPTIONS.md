@@ -6,7 +6,7 @@
 | H2 | Distribuzione 2p | 3 carte a testa per mano, 4 sul tavolo; se ≥3 Re sul tavolo si rimescola e ridà. 6 mani per smazzata. | Dal PDF |
 | H3 | Distribuzione 4p | 10 carte a testa in un'unica distribuzione, tavolo iniziale vuoto, nessun controllo dei Re. | Deciso dall'utente |
 | H4 | Squadre 4p | Compagni seduti opposti (posti 1&3, 2&4); carte, scope e punti per squadra; punteggio identico per i due compagni. | Assunto |
-| H5 | Target punti | Default 11 a 2 giocatori, 21 a 4 giocatori (opzione tavolo 11/21/31). | Deciso dall'utente |
+| H5 | Target punti | Fisso: 11 a 2 giocatori, 21 a 4 giocatori (nessuna opzione di tavolo). | Deciso dall'utente |
 | H6 | Fine partita | A fine smazzata vince chi ha ≥ target e più punti dell'avversario; altrimenti si gioca un'altra smazzata (copre il pareggio). | Assunto |
 | H7 | Parità sui punti | Su carte, denari, primiera in parità nessuno prende il punto. | Assunto (standard) |
 | H8 | Primiera | Richiede almeno una carta per ciascun seme; chi non la ha completa non concorre. Se nessuno la ha completa il punto non è assegnato. | Assunto (PDF: "le 4 carte, una per seme") |

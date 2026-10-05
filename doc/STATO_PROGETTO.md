@@ -26,7 +26,7 @@ Non è stato fatto, per scelta: il riepilogo di fine smazzata in una finestra (b
 - 2 giocatori: 3 carte a testa e 4 scoperte sul tavolo (da rifare con 3 o più Re). 4 giocatori: 10 carte a testa, tavolo vuoto.
 - Presa: se c'è una carta di pari valore si deve prendere quella; altrimenti qualunque somma uguale. Presa obbligatoria se possibile.
 - Punti: scope, settebello, primiera, denari (6 o più), carte (21 o più). Parità = nessun punto.
-- Target: 11 punti a 2 giocatori, 21 a 4 (opzione tavolo 11/21/31). Vince chi ha raggiunto il target ed è strettamente in testa.
+- Target: 11 punti a 2 giocatori, 21 a 4 (fissi, nessuna opzione di tavolo). Vince chi ha raggiunto il target ed è strettamente in testa.
 - Nessun "Pass". Ordine di turno secondo il tavolo BGA.
 
 ## Come si lavora

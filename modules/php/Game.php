@@ -32,8 +32,11 @@ use Bga\Games\ProjectBiagio\States\NewDeal;
 
 class Game extends \Bga\GameFramework\Table
 {
-    /** Id dell'opzione di tavolo "punteggio obiettivo" (vedi gameoptions.jsonc). */
-    public const OPTION_TARGET_SCORE = 100;
+    /** Punteggio da raggiungere per vincere con 2 giocatori. */
+    private const TARGET_SCORE_TWO_PLAYERS = 11;
+
+    /** Punteggio da raggiungere per vincere con 4 giocatori a squadre (le smazzate sono condivise, quindi serve di più). */
+    private const TARGET_SCORE_FOUR_PLAYERS = 21;
 
     public const LOCATION_DECK = 'deck';
     public const LOCATION_HAND = 'hand';
@@ -465,14 +468,9 @@ class Game extends \Bga\GameFramework\Table
         $this->reattributeColorsBasedOnPreferences($players, $gameinfos["player_colors"]);
         $this->reloadPlayersBasicInfos();
 
-        // Punteggio obiettivo: "automatico" vale 11 punti con 2 giocatori e 21 punti con 4 giocatori (squadre).
-        $targetScoreOption = (int) $this->bga->tableOptions->get(self::OPTION_TARGET_SCORE);
-        $targetScore = match ($targetScoreOption) {
-            1 => 11,
-            2 => 21,
-            3 => 31,
-            default => count($players) === 4 ? 21 : 11,
-        };
+        // Punteggio obiettivo fisso, deciso dal numero di giocatori (nessuna opzione di tavolo): è salvato nei
+        // globali perché lo leggono il calcolo di fine partita, l'avanzamento e il client.
+        $targetScore = count($players) === 4 ? self::TARGET_SCORE_FOUR_PLAYERS : self::TARGET_SCORE_TWO_PLAYERS;
         $this->bga->globals->set('target', $targetScore);
 
         // Primo mazziere scelto a caso; dalla seconda smazzata il mazziere passa al giocatore successivo.
