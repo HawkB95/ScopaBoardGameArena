@@ -69,6 +69,10 @@ class EndDeal extends GameState
         }
         $dealScoreByTeam = ScopaRules::scoreDeal($capturesByTeam);
 
+        // Per ogni squadra: si aggiornano punteggio e statistiche di tutti i membri, si rilegge il totale
+        // aggiornato (somma di tutte le smazzate) e si invia il dettaglio ai client. Il totale serve sia alla
+        // notifica sia al controllo di fine partita.
+        $totalScoreByTeam = [];
         foreach ($teamIds as $teamId) {
             $dealScore = $dealScoreByTeam[$teamId];
             foreach ($game->playersOfTeam($teamId) as $playerId) {
@@ -79,15 +83,8 @@ class EndDeal extends GameState
                 $this->bga->playerStats->inc('denari_count', $dealScore['denari'], $playerId);
                 $this->bga->playerStats->inc('carte_count', $dealScore['carte'], $playerId);
             }
-        }
-
-        $totalScoreByTeam = [];
-        foreach ($teamIds as $teamId) {
             $totalScoreByTeam[$teamId] = $game->teamScore($teamId);
-        }
 
-        foreach ($teamIds as $teamId) {
-            $dealScore = $dealScoreByTeam[$teamId];
             $this->bga->notify->all('teamScored', clienttranslate('${team_name} scores ${points} (scope: ${scope}, settebello: ${settebello}, primiera: ${primiera}, denari: ${denari}, carte: ${carte})'), [
                 'team' => $teamId,
                 'team_name' => $game->teamName($teamId),

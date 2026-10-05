@@ -38,6 +38,8 @@ export class PlayerTurn {
         this.isActive = isCurrentPlayerActive;
         this.selectedHandCardId = null;
         this.selectedCaptureIds = [];
+        // Le prese lecite sono dati privati del giocatore attivo (la mano è nascosta agli altri): il framework le
+        // consegna in `_private`; `captures` copre il caso in cui gli argomenti arrivino già "appiattiti".
         this.capturesByCard = args?.captures ?? args?._private?.captures ?? {};
 
         if (!isCurrentPlayerActive) {
@@ -51,19 +53,13 @@ export class PlayerTurn {
     }
 
     /**
-     * Chiamata dal framework all'uscita dallo stato: toglie tutte le evidenziazioni dalle carte.
+     * Chiamata dal framework all'uscita dallo stato: azzera la selezione e toglie le evidenziazioni dalle carte.
      */
-    onLeavingState(args: PlayerTurnArgs, isCurrentPlayerActive: boolean) {
+    onLeavingState() {
         this.isActive = false;
         this.selectedHandCardId = null;
         this.selectedCaptureIds = [];
         this.clearCardHighlights();
-    }
-
-    /**
-     * Chiamata dal framework quando il giocatore diventa attivo o smette di esserlo (qui non serve: stato a giocatore singolo).
-     */
-    onPlayerActivationChange(args: PlayerTurnArgs, isCurrentPlayerActive: boolean) {
     }
 
     /**

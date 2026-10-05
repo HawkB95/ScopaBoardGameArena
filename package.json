@@ -1,7 +1,7 @@
  {
    "name": "projectbiagio",
    "version": "1.0.0",
-   "description": "",
+   "description": "Scopa per Board Game Arena Studio",
    "main": "modules/js/Game.js",
    "scripts": {
      "build:ts": "rollup -c",
@@ -11,7 +11,7 @@
      "watch": "npm run watch:ts & npm run watch:scss",
      "build": "npm run build:ts && npm run build:scss"
    },
-   "author": "yourname",
+   "author": "Biagio Falco",
    "license": "MIT",
    "devDependencies": {
     "@rollup/plugin-typescript": "^12.3.0",

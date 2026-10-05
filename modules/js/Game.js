@@ -68,6 +68,16 @@ function createCardBackElement() {
 function sortCardsForHand(cards) {
     return [...cards].sort((first, second) => first.suit - second.suit || first.rank - second.rank);
 }
+/**
+ * Riordina per seme e valore gli elementi HTML delle carte già presenti nella mano (stesso ordine di
+ * sortCardsForHand, ma lavora sugli elementi perché la mano è già disegnata e va solo riordinata, senza ricrearla).
+ */
+function sortCardElementsInHand(handElement) {
+    const sortedElements = [...handElement.children]
+        .map(element => element)
+        .sort((first, second) => Number(first.dataset.suit) - Number(second.dataset.suit) || Number(first.dataset.rank) - Number(second.dataset.rank));
+    sortedElements.forEach(element => handElement.appendChild(element));
+}
 
 /** Id del pulsante di conferma nella barra di stato. */
 const CONFIRM_BUTTON_ID = 'scopa-confirm-button';
@@ -105,6 +115,8 @@ class PlayerTurn {
         this.isActive = isCurrentPlayerActive;
         this.selectedHandCardId = null;
         this.selectedCaptureIds = [];
+        // Le prese lecite sono dati privati del giocatore attivo (la mano è nascosta agli altri): il framework le
+        // consegna in `_private`; `captures` copre il caso in cui gli argomenti arrivino già "appiattiti".
         this.capturesByCard = args?.captures ?? args?._private?.captures ?? {};
         if (!isCurrentPlayerActive) {
             this.bga.statusBar.setTitle(_('${actplayer} must play a card'));
@@ -115,18 +127,13 @@ class PlayerTurn {
         this.refreshSelectionDisplay();
     }
     /**
-     * Chiamata dal framework all'uscita dallo stato: toglie tutte le evidenziazioni dalle carte.
+     * Chiamata dal framework all'uscita dallo stato: azzera la selezione e toglie le evidenziazioni dalle carte.
      */
-    onLeavingState(args, isCurrentPlayerActive) {
+    onLeavingState() {
         this.isActive = false;
         this.selectedHandCardId = null;
         this.selectedCaptureIds = [];
         this.clearCardHighlights();
-    }
-    /**
-     * Chiamata dal framework quando il giocatore diventa attivo o smette di esserlo (qui non serve: stato a giocatore singolo).
-     */
-    onPlayerActivationChange(args, isCurrentPlayerActive) {
     }
     /**
      * Gestisce il clic su una carta della propria mano: la seleziona, oppure la deseleziona se era già selezionata.
@@ -338,8 +345,8 @@ class Game {
         this.renderDeckCount(gamedatas.deckCount);
         this.renderTable(gamedatas.table);
         this.renderHand(gamedatas.hand);
-        Object.keys(this.handCounts).forEach(playerId => this.renderOpponentHand(Number(playerId)));
-        Object.keys(this.capturedCounts).forEach(teamId => this.renderPile(Number(teamId)));
+        this.renderAllOpponentHands();
+        this.renderAllPiles();
         this.renderTargetScore(gamedatas.target);
         this.connectCardClicks();
         this.bga.notifications.setupPromiseNotifications({});
@@ -352,6 +359,19 @@ class Game {
         const numericValues = {};
         Object.keys(values).forEach(key => numericValues[Number(key)] = Number(values[Number(key)]));
         return numericValues;
+    }
+    /**
+     * Ridisegna le carte coperte di tutti gli avversari (il giocatore corrente non ha un dorso da mostrare:
+     * le sue carte sono nella mano scoperta, e `scopa-opponent-hand-<id>` per lui non esiste).
+     */
+    renderAllOpponentHands() {
+        Object.keys(this.handCounts).forEach(playerId => this.renderOpponentHand(Number(playerId)));
+    }
+    /**
+     * Aggiorna la pila delle prese di ogni squadra.
+     */
+    renderAllPiles() {
+        Object.keys(this.capturedCounts).forEach(teamId => this.renderPile(Number(teamId)));
     }
     /**
      * Crea la struttura HTML del gioco: avversari in alto, al centro mazzo + tavolo + pile delle prese,
@@ -569,8 +589,8 @@ class Game {
         const deltaY = startRect.top - endRect.top;
         element.style.zIndex = '20';
         const animation = element.animate([{ transform: `translate(${deltaX}px, ${deltaY}px)` }, { transform: 'none' }], { duration: CARD_MOVE_DURATION_MS, easing: 'ease-in-out' });
-        // Il limite di tempo evita di bloccare la coda delle notifiche se il browser non porta a termine
-        // l'animazione (per esempio in una tab in secondo piano).
+        // Il limite di tempo è necessario perché BGA esegue le notifiche una dopo l'altra: se il browser non
+        // portasse a termine l'animazione (per esempio in una scheda in secondo piano) la coda resterebbe bloccata.
         await Promise.race([
             animation.finished.catch(() => undefined),
             new Promise(resolve => setTimeout(resolve, CARD_MOVE_DURATION_MS + 300)),
@@ -607,9 +627,9 @@ class Game {
         Object.keys(this.capturedCounts).forEach(teamId => {
             this.capturedCounts[Number(teamId)] = 0;
             this.scopeCounts[Number(teamId)] = 0;
-            this.renderPile(Number(teamId));
         });
-        Object.keys(this.handCounts).forEach(playerId => this.renderOpponentHand(Number(playerId)));
+        this.renderAllPiles();
+        this.renderAllOpponentHands();
         this.renderDealer(Number(args.dealer));
         this.renderDeckCount(Number(args.deckCount) + args.table.length);
         const tableElement = document.getElementById('scopa-table');
@@ -629,11 +649,8 @@ class Game {
         for (const card of args.cards) {
             await this.dealCardFromDeck(createCardElement(card), handElement);
         }
-        // Rimette in ordine l'intera mano per seme e valore.
-        const sortedElements = [...handElement.children]
-            .map(element => element)
-            .sort((first, second) => Number(first.dataset.suit) - Number(second.dataset.suit) || Number(first.dataset.rank) - Number(second.dataset.rank));
-        sortedElements.forEach(element => handElement.appendChild(element));
+        // Le carte sono arrivate una alla volta: a fine distribuzione si riordina l'intera mano.
+        sortCardElementsInHand(handElement);
     }
     /**
      * Distribuzione conclusa: aggiorna il numero di carte in mano a ogni giocatore e quelle rimaste nel mazzo.

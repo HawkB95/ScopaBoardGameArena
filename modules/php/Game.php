@@ -49,7 +49,10 @@ class Game extends \Bga\GameFramework\Table
     /** Numero di carte del mazzo. */
     private const DECK_SIZE = 40;
 
-    /** Media approssimativa dei punti fatti in una smazzata, usata solo per stimare l'avanzamento della partita. */
+    /**
+     * Media approssimativa dei punti fatti da una squadra in una smazzata, usata solo per stimare l'avanzamento
+     * della partita (la durata reale non è prevedibile: dipende da quando qualcuno raggiunge l'obiettivo).
+     */
     private const AVERAGE_POINTS_PER_DEAL = 3;
 
     public \Bga\GameFramework\Components\Deck $cards;
@@ -89,8 +92,9 @@ class Game extends \Bga\GameFramework\Table
     }
 
     /**
-     * Restituisce i giocatori di ogni squadra, indicizzati per id squadra (il risultato è messo in cache
-     * dopo la prima chiamata).
+     * Restituisce i giocatori di ogni squadra, indicizzati per id squadra. Il risultato è messo in cache
+     * perché le squadre non cambiano durante la partita e questo metodo è chiamato molte volte per richiesta
+     * (punteggi, nomi, pile): così si evita di rifare le query ad ogni chiamata.
      *
      * @return array<int, int[]> id squadra => id dei giocatori in ordine di tavolo
      */
@@ -98,9 +102,7 @@ class Game extends \Bga\GameFramework\Table
     {
         if ($this->playerIdsByTeamCache === null) {
             $playerIdsByTeam = [];
-            $playerRows = $this->getObjectListFromDB("SELECT `player_id`, `player_no` FROM `player` ORDER BY `player_no`");
-            foreach ($playerRows as $playerRow) {
-                $playerId = (int) $playerRow['player_id'];
+            foreach ($this->playerIdsInTableOrder() as $playerId) {
                 $playerIdsByTeam[$this->teamOf($playerId)][] = $playerId;
             }
             ksort($playerIdsByTeam);
@@ -350,8 +352,9 @@ class Game extends \Bga\GameFramework\Table
     }
 
     /**
-     * Punto di aggancio per le migrazioni del database: per ora non c'è nulla da migrare
-     * (il gioco non è ancora pubblicato).
+     * Punto di aggancio per le migrazioni del database. Il framework BGA lo richiede (è chiamato quando si
+     * carica una partita creata con una versione precedente del gioco): per ora non c'è nulla da migrare
+     * perché il gioco non è ancora pubblicato; quando cambierà `dbmodel.sql` le modifiche andranno qui.
      */
     public function upgradeTableDb($from_version)
     {
@@ -385,7 +388,6 @@ class Game extends \Bga\GameFramework\Table
         $gameData['teamNames'] = $teamNameByTeam;
         $gameData['target'] = $this->targetScore();
         $gameData['dealer'] = $this->getDealerId();
-        $gameData['dealNo'] = (int) $this->bga->globals->get('deal_no');
         $gameData['hand'] = $this->cardViews($this->cards->getCardsInLocation(self::LOCATION_HAND, $currentPlayerId));
         $gameData['table'] = $this->tableCards();
         $gameData['handCounts'] = $this->handCounts();
@@ -463,8 +465,9 @@ class Game extends \Bga\GameFramework\Table
     }
 
     /**
-     * Funzione di debug (pulsante nel pannello debug di Studio): salta a uno stato dato il suo id,
-     * per esempio 95 = EndDeal.
+     * Funzione di debug (pulsante nel pannello debug di Studio, il prefisso `debug_` la rende visibile lì):
+     * salta a uno stato dato il suo id, per esempio 95 = EndDeal. Serve a provare la fine smazzata senza giocare
+     * tutte le carte; in produzione BGA non la espone ai giocatori.
      */
     public function debug_goToState(int $state = 3)
     {

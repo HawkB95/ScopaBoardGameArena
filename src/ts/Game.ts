@@ -1,5 +1,5 @@
 import { PlayerTurn } from "./States/PlayerTurn";
-import { cardElementId, createCardBackElement, createCardElement, sortCardsForHand } from "./CardView";
+import { cardElementId, createCardBackElement, createCardElement, sortCardElementsInHand, sortCardsForHand } from "./CardView";
 
 /** Durata in millisecondi degli spostamenti delle carte. */
 const CARD_MOVE_DURATION_MS = 500;
@@ -54,8 +54,8 @@ export class Game {
         this.renderDeckCount(gamedatas.deckCount);
         this.renderTable(gamedatas.table);
         this.renderHand(gamedatas.hand);
-        Object.keys(this.handCounts).forEach(playerId => this.renderOpponentHand(Number(playerId)));
-        Object.keys(this.capturedCounts).forEach(teamId => this.renderPile(Number(teamId)));
+        this.renderAllOpponentHands();
+        this.renderAllPiles();
         this.renderTargetScore(gamedatas.target);
 
         this.connectCardClicks();
@@ -70,6 +70,21 @@ export class Game {
         const numericValues: Record<number, number> = {};
         Object.keys(values).forEach(key => numericValues[Number(key)] = Number(values[Number(key)]));
         return numericValues;
+    }
+
+    /**
+     * Ridisegna le carte coperte di tutti gli avversari (il giocatore corrente non ha un dorso da mostrare:
+     * le sue carte sono nella mano scoperta, e `scopa-opponent-hand-<id>` per lui non esiste).
+     */
+    private renderAllOpponentHands() {
+        Object.keys(this.handCounts).forEach(playerId => this.renderOpponentHand(Number(playerId)));
+    }
+
+    /**
+     * Aggiorna la pila delle prese di ogni squadra.
+     */
+    private renderAllPiles() {
+        Object.keys(this.capturedCounts).forEach(teamId => this.renderPile(Number(teamId)));
     }
 
     /**
@@ -312,8 +327,8 @@ export class Game {
             [{ transform: `translate(${deltaX}px, ${deltaY}px)` }, { transform: 'none' }],
             { duration: CARD_MOVE_DURATION_MS, easing: 'ease-in-out' },
         );
-        // Il limite di tempo evita di bloccare la coda delle notifiche se il browser non porta a termine
-        // l'animazione (per esempio in una tab in secondo piano).
+        // Il limite di tempo è necessario perché BGA esegue le notifiche una dopo l'altra: se il browser non
+        // portasse a termine l'animazione (per esempio in una scheda in secondo piano) la coda resterebbe bloccata.
         await Promise.race([
             animation.finished.catch(() => undefined),
             new Promise(resolve => setTimeout(resolve, CARD_MOVE_DURATION_MS + 300)),
@@ -354,9 +369,9 @@ export class Game {
         Object.keys(this.capturedCounts).forEach(teamId => {
             this.capturedCounts[Number(teamId)] = 0;
             this.scopeCounts[Number(teamId)] = 0;
-            this.renderPile(Number(teamId));
         });
-        Object.keys(this.handCounts).forEach(playerId => this.renderOpponentHand(Number(playerId)));
+        this.renderAllPiles();
+        this.renderAllOpponentHands();
 
         this.renderDealer(Number(args.dealer));
         this.renderDeckCount(Number(args.deckCount) + args.table.length);
@@ -379,12 +394,8 @@ export class Game {
         for (const card of args.cards) {
             await this.dealCardFromDeck(createCardElement(card), handElement);
         }
-        // Rimette in ordine l'intera mano per seme e valore.
-        const sortedElements = [...handElement.children]
-            .map(element => element as HTMLElement)
-            .sort((first, second) =>
-                Number(first.dataset.suit) - Number(second.dataset.suit) || Number(first.dataset.rank) - Number(second.dataset.rank));
-        sortedElements.forEach(element => handElement.appendChild(element));
+        // Le carte sono arrivate una alla volta: a fine distribuzione si riordina l'intera mano.
+        sortCardElementsInHand(handElement);
     }
 
     /**

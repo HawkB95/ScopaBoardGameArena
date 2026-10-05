@@ -26,8 +26,6 @@ interface ProjectBiagioGamedatas extends Gamedatas<ProjectBiagioPlayer> {
     target: number;
     /** Id del mazziere. */
     dealer: number;
-    /** Numero della smazzata in corso. */
-    dealNo: number;
     /** Mano del giocatore corrente (vuota per gli spettatori). */
     hand: ScopaCard[];
     /** Carte sul tavolo. */

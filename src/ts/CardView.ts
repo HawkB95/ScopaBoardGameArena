@@ -77,3 +77,15 @@ export function createCardBackElement(): HTMLElement {
 export function sortCardsForHand(cards: ScopaCard[]): ScopaCard[] {
     return [...cards].sort((first, second) => first.suit - second.suit || first.rank - second.rank);
 }
+
+/**
+ * Riordina per seme e valore gli elementi HTML delle carte già presenti nella mano (stesso ordine di
+ * sortCardsForHand, ma lavora sugli elementi perché la mano è già disegnata e va solo riordinata, senza ricrearla).
+ */
+export function sortCardElementsInHand(handElement: HTMLElement): void {
+    const sortedElements = [...handElement.children]
+        .map(element => element as HTMLElement)
+        .sort((first, second) =>
+            Number(first.dataset.suit) - Number(second.dataset.suit) || Number(first.dataset.rank) - Number(second.dataset.rank));
+    sortedElements.forEach(element => handElement.appendChild(element));
+}
