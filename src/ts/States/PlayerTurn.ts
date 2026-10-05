@@ -27,7 +27,7 @@ export class PlayerTurn {
     /** Vero se il giocatore corrente è quello attivo e può agire. */
     private isActive = false;
 
-    constructor(private game: Game, private bga: Bga<EmptyGamePlayer, EmptyGameGamedatas>) {
+    constructor(private game: Game, private bga: Bga<ProjectBiagioPlayer, ProjectBiagioGamedatas>) {
     }
 
     /**
