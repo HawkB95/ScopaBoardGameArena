@@ -1,19 +1,8 @@
 /*
- * Disegno delle carte. L'elemento di una carta contiene sia il disegno francese in HTML/CSS (valore e seme in
- * testo) sia le classi per lo sprite delle carte napoletane (img/cards.jpg): il CSS mostra l'uno o l'altro in
- * base alla preferenza "Card style" del giocatore (napoletane di default).
- * Corrispondenza dei semi: denari = quadri, coppe = cuori, bastoni = fiori, spade = picche.
+ * Disegno delle carte. Ogni carta è un elemento vuoto: la faccia viene dallo sprite delle carte napoletane
+ * (img/cards.jpg), scelta dal CSS con le classi di seme e valore (vedi src/scss/Game.scss).
+ * Seme: 1 denari, 2 coppe, 3 bastoni, 4 spade.
  */
-/** Simbolo di ogni seme (id seme => simbolo). */
-const SUIT_SYMBOL_BY_SUIT = { 1: '♦', 2: '♥', 3: '♣', 4: '♠' };
-/** Etichetta mostrata sulla carta per ogni valore (valore => etichetta). */
-const RANK_LABEL_BY_RANK = {
-    1: 'A', 2: '2', 3: '3', 4: '4', 5: '5', 6: '6', 7: '7', 8: 'J', 9: 'Q', 10: 'K',
-};
-/** Vero per i semi rossi (denari e coppe). */
-function isRedSuit(suit) {
-    return suit === 1 || suit === 2;
-}
 /** Id dell'elemento HTML di una carta. */
 function cardElementId(cardId) {
     return `scopa-card-${cardId}`;
@@ -32,26 +21,18 @@ function cardName(card) {
     return `${rankNames[card.rank]} - ${suitNames[card.suit]}`;
 }
 /**
- * Crea l'elemento HTML di una carta scoperta: valore e seme negli angoli, simbolo grande al centro
- * (con la lettera J/Q/K per le figure).
+ * Crea l'elemento HTML di una carta scoperta. Non ha contenuto: il disegno è lo sprite scelto dalle classi
+ * di seme e valore; nome e dati servono al tooltip, all'accessibilità e ai clic/riordino (data-*).
  */
 function createCardElement(card) {
     const cardElement = document.createElement('div');
     cardElement.id = cardElementId(card.id);
-    cardElement.className = `scopa-card scopa-card--${isRedSuit(card.suit) ? 'red' : 'black'} scopa-card--suit-${card.suit} scopa-card--rank-${card.rank}`;
+    cardElement.className = `scopa-card scopa-card--suit-${card.suit} scopa-card--rank-${card.rank}`;
     cardElement.dataset.cardId = String(card.id);
     cardElement.dataset.rank = String(card.rank);
     cardElement.dataset.suit = String(card.suit);
     cardElement.title = cardName(card);
     cardElement.setAttribute('aria-label', cardName(card));
-    const rankLabel = RANK_LABEL_BY_RANK[card.rank];
-    const suitSymbol = SUIT_SYMBOL_BY_SUIT[card.suit];
-    const faceLetter = card.rank >= 8 ? `<span class="scopa-card-face-letter">${rankLabel}</span>` : '';
-    cardElement.innerHTML = `
-        <span class="scopa-card-corner scopa-card-corner--top">${rankLabel}<br>${suitSymbol}</span>
-        <span class="scopa-card-center">${faceLetter}<span class="scopa-card-big-suit">${suitSymbol}</span></span>
-        <span class="scopa-card-corner scopa-card-corner--bottom">${rankLabel}<br>${suitSymbol}</span>
-    `;
     return cardElement;
 }
 /**

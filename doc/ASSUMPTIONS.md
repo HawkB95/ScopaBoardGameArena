@@ -13,4 +13,4 @@
 | H9 | Scopa finale | Nessuna scopa se la presa che svuota il tavolo è l'ultima giocata della smazzata. | Dal PDF |
 | H10 | Carte residue | A fine smazzata le carte sul tavolo vanno a chi ha fatto l'ultima presa. | Assunto (standard) |
 | H11 | Zombie | Livello 1: presa legale casuale (se esiste), altrimenti scarto casuale. | Assunto |
-| H12 | Aspetto delle carte | Carte napoletane da sprite (pubblico dominio, vedi CREDITS.md) di default; carte francesi in HTML/CSS come preferenza "Card style". | Deciso dall'utente |
+| H12 | Aspetto delle carte | Solo carte napoletane da sprite (pubblico dominio, vedi CREDITS.md); lo stile francese e la preferenza "Card style" sono stati rimossi. | Deciso dall'utente |

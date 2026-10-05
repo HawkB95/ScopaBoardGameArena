@@ -14,17 +14,11 @@
 :root {
   --scopa-card-width: 84px;
   --scopa-table-color: #1f6b43;
-  --scopa-card-red: #c0272d;
-  --scopa-card-black: #1d1d1d;
 }
 
 #scopa-board {
   --scopa-card-ratio: 1.714;
   --scopa-card-height: calc(var(--scopa-card-width) * var(--scopa-card-ratio));
-}
-
-.scopa_cards_french #scopa-board {
-  --scopa-card-ratio: 1.4;
 }
 
 /* ---------- Struttura generale ---------- */
@@ -93,53 +87,6 @@
   user-select: none;
   font-family: Georgia, "Times New Roman", serif;
   transition: box-shadow 0.15s, outline-color 0.15s;
-}
-
-.scopa-card--red {
-  color: var(--scopa-card-red);
-}
-
-.scopa-card--black {
-  color: var(--scopa-card-black);
-}
-
-.scopa-card-corner {
-  position: absolute;
-  font-size: calc(var(--scopa-card-width) * 0.22);
-  font-weight: bold;
-  line-height: 1.05;
-  text-align: center;
-}
-
-.scopa-card-corner--top {
-  top: 4px;
-  left: 5px;
-}
-
-.scopa-card-corner--bottom {
-  right: 5px;
-  bottom: 4px;
-  transform: rotate(180deg);
-}
-
-.scopa-card-center {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-.scopa-card-big-suit {
-  font-size: calc(var(--scopa-card-width) * 0.55);
-  line-height: 1;
-}
-
-.scopa-card-face-letter {
-  font-size: calc(var(--scopa-card-width) * 0.4);
-  font-weight: bold;
-  line-height: 1;
 }
 
 /* Dorso della carta (mano degli avversari, mazzo, pile). */
@@ -318,16 +265,13 @@
     opacity: 0;
   }
 }
-/* ---------- Stile delle carte: napoletane (predefinito) e francesi ---------- */
+/* ---------- Faccia delle carte (sprite napoletano) ---------- */
 .scopa-card:not(.scopa-card--back) {
   background-image: url("img/cards.jpg");
   background-size: 1000% 400%;
   background-repeat: no-repeat;
   background-color: #fffdf6;
   border-radius: 7px;
-}
-.scopa-card:not(.scopa-card--back) > span {
-  display: none;
 }
 
 .scopa-card--rank-1 {
@@ -384,17 +328,6 @@
 
 .scopa-card--suit-4 {
   background-position-y: 100%;
-}
-
-.scopa_cards_french .scopa-card:not(.scopa-card--back) {
-  background-image: none;
-  border-radius: 6px;
-}
-.scopa_cards_french .scopa-card:not(.scopa-card--back) > .scopa-card-corner {
-  display: block;
-}
-.scopa_cards_french .scopa-card:not(.scopa-card--back) > .scopa-card-center {
-  display: flex;
 }
 
 /* ---------- Partite a squadre (4 giocatori) ---------- */

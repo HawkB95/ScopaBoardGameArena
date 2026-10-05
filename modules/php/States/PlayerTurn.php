@@ -120,7 +120,7 @@ class PlayerTurn extends GameState
 
         $tableWasEmptied = $game->countCardsIn(Game::LOCATION_TABLE) === 0;
         $isScopa = $tableWasEmptied && !$game->isLastPlayOfDeal();
-        $capturedLabels = implode(', ', array_map(fn($capturedCardView) => $game->cardLabel($capturedCardView), $capturedCardViews));
+        $capturedLabels = $game->cardsLabel($capturedCardViews);
 
         $captureNotificationArgs = $commonNotificationArgs + [
             'captured' => $capturedCardViews,

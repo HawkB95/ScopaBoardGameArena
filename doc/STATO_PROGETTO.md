@@ -16,7 +16,7 @@ Il gioco è **completo e funzionante** a 2 giocatori e a 4 giocatori a coppie. �
 | 2 | Server: `Game.php`, stati `NewDeal`, `DealHands`, `PlayerTurn`, `NextPlayer`, `EndDeal`, `EndScore` | fatto e provato |
 | 3 | Client TypeScript (tavolo, mano, selezione prese, animazioni, banner "SCOPA!") | fatto e provato |
 | 4 | 4 giocatori a coppie (10 carte a testa, tavolo vuoto, squadre, etichette Partner/Opponent) | fatto e provato |
-| 5 | Carte napoletane da sprite + preferenza "Card style" (napoletane/francesi), CSS per telefoni | fatto |
+| 5 | Carte napoletane da sprite (unico stile), CSS per telefoni | fatto |
 | 6 | Metadati, immagini (`doc/media/box.png`, `icon.png`), richiesta PRIVATE ALPHA | richiesta inviata |
 
 Non è stato fatto, per scelta: il riepilogo di fine smazzata in una finestra (basta il log di gioco).

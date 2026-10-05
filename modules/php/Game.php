@@ -40,12 +40,6 @@ class Game extends \Bga\GameFramework\Table
     public const LOCATION_TABLE = 'table';
     public const LOCATION_CAPTURED = 'captured';
 
-    /** Simbolo mostrato nel log per ogni seme (id seme => simbolo). */
-    private const SUIT_SYMBOL_BY_SUIT = [1 => '♦', 2 => '♥', 3 => '♣', 4 => '♠'];
-
-    /** Etichetta breve mostrata nel log per ogni valore (valore => etichetta). */
-    private const RANK_LABEL_BY_RANK = [1 => 'A', 2 => '2', 3 => '3', 4 => '4', 5 => '5', 6 => '6', 7 => '7', 8 => 'J', 9 => 'Q', 10 => 'K'];
-
     /** Numero di carte del mazzo. */
     private const DECK_SIZE = 40;
 
@@ -234,11 +228,53 @@ class Game extends \Bga\GameFramework\Table
     }
 
     /**
-     * Restituisce il testo breve usato nel log per una carta, per esempio "7♦" o "K♠".
+     * Restituisce il nome di una carta da usare come argomento di una notifica, per esempio "King of Coins".
+     * È un argomento "annidato" (testo con segnaposto + argomenti) perché i nomi vanno tradotti dal client nella
+     * lingua di ogni giocatore: le chiavi in `i18n` dicono a BGA quali argomenti tradurre. Gli stessi testi
+     * (Ace, Coins, ...) sono usati dal client per i tooltip, quindi hanno una sola traduzione.
+     *
+     * @return array{log:string, args:array}
      */
-    public function cardLabel(array $cardView): string
+    public function cardLabel(array $cardView): array
     {
-        return self::RANK_LABEL_BY_RANK[$cardView['rank']] . self::SUIT_SYMBOL_BY_SUIT[$cardView['suit']];
+        $rankNameByRank = [
+            1 => clienttranslate('Ace'), 2 => clienttranslate('Two'), 3 => clienttranslate('Three'),
+            4 => clienttranslate('Four'), 5 => clienttranslate('Five'), 6 => clienttranslate('Six'),
+            7 => clienttranslate('Seven'), 8 => clienttranslate('Jack'), 9 => clienttranslate('Knight'),
+            10 => clienttranslate('King'),
+        ];
+        $suitNameBySuit = [
+            1 => clienttranslate('Coins'), 2 => clienttranslate('Cups'),
+            3 => clienttranslate('Clubs'), 4 => clienttranslate('Swords'),
+        ];
+        return [
+            'log' => clienttranslate('${rank_name} of ${suit_name}'),
+            'args' => [
+                'rank_name' => $rankNameByRank[$cardView['rank']],
+                'suit_name' => $suitNameBySuit[$cardView['suit']],
+                'i18n' => ['rank_name', 'suit_name'],
+            ],
+        ];
+    }
+
+    /**
+     * Restituisce l'elenco di più carte come argomento di notifica annidato, per esempio
+     * "Two of Cups, Five of Swords": ogni carta è un argomento (`card_0`, `card_1`, ...) con il proprio nome
+     * tradotto, così l'elenco resta traducibile anche se contiene un numero variabile di carte.
+     *
+     * @param array[] $cardViews carte nel formato del client
+     * @return array{log:string, args:array}
+     */
+    public function cardsLabel(array $cardViews): array
+    {
+        $cardLabelByKey = [];
+        foreach (array_values($cardViews) as $index => $cardView) {
+            $cardLabelByKey['card_' . $index] = $this->cardLabel($cardView);
+        }
+        return [
+            'log' => implode(', ', array_map(fn($key) => '${' . $key . '}', array_keys($cardLabelByKey))),
+            'args' => $cardLabelByKey,
+        ];
     }
 
     /**

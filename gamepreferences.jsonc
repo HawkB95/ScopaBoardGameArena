@@ -1,18 +1,5 @@
 {
-  // user preferences ids should be between 100 and 199
-  // See https://en.doc.boardgamearena.com/Options_and_preferences:_gameoptions.json,_gamepreferences.json for more details
-  "100": {
-    "name": "Card style",
-    "values": {
-      "0": {
-        "name": "Italian (Napoletane)",
-        "cssPref": "scopa_cards_italian"
-      },
-      "1": {
-        "name": "French",
-        "cssPref": "scopa_cards_french"
-      }
-    },
-    "default": 0
-  }
+  // Nessuna preferenza utente: le carte usano sempre lo stile napoletano (sprite img/cards.jpg).
+  // Gli id delle preferenze, se ne servissero, vanno da 100 a 199.
+  // Vedi https://en.doc.boardgamearena.com/Options_and_preferences:_gameoptions.json,_gamepreferences.json
 }
