@@ -35,7 +35,8 @@ Gioco di carte Scopa per BGA Studio, nuovo framework 2025+. Stato, regole e cose
 ## Errori già incontrati (non ripeterli)
 
 1. Le carte si gestiscono con `ItemManager` (`$game->cards`), non con `Deck` (deprecato). Le posizioni con argomento si
-   scrivono con `Game::locationOf($location, $arg)`; per contare usare `Game::countCardsIn()`.
+   scrivono con `Game::locationOf($location, $arg)`; per contare usare `Game::countCardsIn()`. In `Card.php`
+   `$locationArg` deve essere `?int`: con `int|string|null` ItemManager lo tratta come testo e rifiuta gli id interi.
 2. BGA scarta gli **array vuoti** inviati dal client: i parametri array PHP vanno con default (`array $capture_ids = []`).
 3. Non riabilitare il pulsante BGA togliendo la classe `disabled`: usare `scopa-button-inactive` e validare nella callback.
 4. I numeri dal server possono essere stringhe: `Number()` prima di sommare.
