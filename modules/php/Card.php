@@ -29,9 +29,12 @@ class Card
     #[ItemField(kind: ItemFieldKind::LOCATION, locationIndex: 0)]
     public string $location;
 
-    /** Id del giocatore (mano) o della squadra (carte prese); vuoto per mazzo e tavolo. */
+    /**
+     * Id del giocatore (mano) o della squadra (carte prese); vuoto per mazzo e tavolo. È dichiarato solo `?int`
+     * (non `int|string|null`): con il tipo unione ItemManager lo considera testo e rifiuta gli interi.
+     */
     #[ItemField(kind: ItemFieldKind::LOCATION, locationIndex: 1)]
-    public int|string|null $locationArg = null;
+    public ?int $locationArg = null;
 
     /** Posizione della carta dentro la sua location (nel mazzo la cima ha l'ordine più alto). */
     #[ItemField(kind: ItemFieldKind::ORDER)]
