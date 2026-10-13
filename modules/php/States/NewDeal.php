@@ -53,15 +53,15 @@ class NewDeal extends GameState
         $this->bga->tableStats->inc('deals_played', 1);
 
         // Riporta tutte le carte nel mazzo e mescola.
-        $game->cards->moveAllCardsInLocation(null, Game::LOCATION_DECK);
+        $game->cards->moveAllItemsInLocation(null, Game::LOCATION_DECK);
         $game->cards->shuffle(Game::LOCATION_DECK);
 
         // Con 4 giocatori il tavolo parte vuoto; con 2 giocatori si scoprono 4 carte (da rifare se ci sono 3+ Re).
         if (!$game->isTeamGame()) {
             do {
-                $game->cards->moveAllCardsInLocation(Game::LOCATION_TABLE, Game::LOCATION_DECK);
+                $game->cards->moveAllItemsInLocation(Game::LOCATION_TABLE, Game::LOCATION_DECK);
                 $game->cards->shuffle(Game::LOCATION_DECK);
-                $game->cards->pickCardsForLocation(self::INITIAL_TABLE_CARDS_COUNT, Game::LOCATION_DECK, Game::LOCATION_TABLE);
+                $game->cards->pickItems(self::INITIAL_TABLE_CARDS_COUNT, Game::LOCATION_DECK, Game::LOCATION_TABLE);
             } while (ScopaRules::needsRedeal($game->tableCards()));
         }
 

@@ -47,11 +47,11 @@ class EndDeal extends GameState
         $cards = $game->cards;
         $teamIds = array_keys($game->getTeams());
 
-        $cardsLeftOnTable = $cards->getCardsInLocation(Game::LOCATION_TABLE);
+        $cardsLeftOnTable = $cards->getItemsInLocation(Game::LOCATION_TABLE);
         if (count($cardsLeftOnTable) > 0) {
             $lastCapturingTeamId = (int) $this->bga->globals->get('last_capturer');
             $teamReceivingCardsId = $lastCapturingTeamId ?: $game->teamOf($activePlayerId);
-            $cards->moveAllCardsInLocation(Game::LOCATION_TABLE, Game::LOCATION_CAPTURED, null, $teamReceivingCardsId);
+            $cards->moveAllItemsInLocation(Game::LOCATION_TABLE, $game->locationOf(Game::LOCATION_CAPTURED, $teamReceivingCardsId));
             $this->bga->notify->all('leftoverCaptured', clienttranslate('${team_name} takes the remaining cards on the table'), [
                 'team' => $teamReceivingCardsId,
                 'team_name' => $game->teamName($teamReceivingCardsId),
@@ -63,7 +63,7 @@ class EndDeal extends GameState
         $capturesByTeam = [];
         foreach ($teamIds as $teamId) {
             $capturesByTeam[$teamId] = [
-                'cards' => $game->cardViews($cards->getCardsInLocation(Game::LOCATION_CAPTURED, $teamId)),
+                'cards' => $game->cardViews($cards->getItemsInLocation($game->locationOf(Game::LOCATION_CAPTURED, $teamId))),
                 'scope' => $scopeByTeam[$teamId],
             ];
         }

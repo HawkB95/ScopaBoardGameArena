@@ -68,15 +68,15 @@ class PlayerTurn extends GameState
         $game = $this->game;
         $cards = $game->cards;
 
-        $playedDeckCard = $cards->getCard($card_id);
-        $isInPlayersHand = $playedDeckCard !== null
-            && $playedDeckCard['location'] === Game::LOCATION_HAND
-            && (int) $playedDeckCard['location_arg'] === $activePlayerId;
+        $playedCardItem = $cards->getItemById($card_id);
+        $isInPlayersHand = $playedCardItem !== null
+            && $playedCardItem->location === Game::LOCATION_HAND
+            && (int) $playedCardItem->locationArg === $activePlayerId;
         if (!$isInPlayersHand) {
             throw new UserException(clienttranslate('This card is not in your hand'));
         }
 
-        $playedCard = $game->cardView($playedDeckCard);
+        $playedCard = $game->cardView($playedCardItem);
         $tableCards = $game->tableCards();
         $capturedCardIds = array_values(array_unique(array_map('intval', $capture_ids)));
         sort($capturedCardIds);
@@ -101,7 +101,7 @@ class PlayerTurn extends GameState
         ];
 
         if (!$wantsToCapture) {
-            $cards->moveCard($card_id, Game::LOCATION_TABLE);
+            $cards->moveItem($card_id, Game::LOCATION_TABLE);
             $this->bga->playerStats->inc('discards_count', 1, $activePlayerId);
             $this->bga->notify->all('cardPlayed', clienttranslate('${player_name} puts ${card_label} on the table'), $commonNotificationArgs + [
                 'captured' => [],
@@ -111,10 +111,10 @@ class PlayerTurn extends GameState
             return NextPlayer::class;
         }
 
-        $capturedCardViews = $game->cardViews($cards->getCards($capturedCardIds));
+        $capturedCardViews = $game->cardViews($cards->getItemsByIds($capturedCardIds));
 
         // La carta giocata e quelle prese vanno nella pila della squadra del giocatore.
-        $cards->moveCards(array_merge([$card_id], $capturedCardIds), Game::LOCATION_CAPTURED, $teamId);
+        $cards->moveItems(array_merge([$card_id], $capturedCardIds), $game->locationOf(Game::LOCATION_CAPTURED, $teamId));
         $this->bga->globals->set('last_capturer', $teamId);
         $this->bga->playerStats->inc('captures_count', 1, $activePlayerId);
 

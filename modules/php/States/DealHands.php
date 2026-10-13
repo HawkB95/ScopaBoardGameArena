@@ -44,7 +44,7 @@ class DealHands extends GameState
 
         $cardsPerPlayer = $game->handSize();
         foreach ($game->playersFromFirst() as $playerId) {
-            $dealtCards = $game->cards->pickCards($cardsPerPlayer, Game::LOCATION_DECK, $playerId);
+            $dealtCards = $game->cards->pickItems($cardsPerPlayer, Game::LOCATION_DECK, $game->locationOf(Game::LOCATION_HAND, $playerId));
             $this->bga->notify->player($playerId, 'dealHand', '', [
                 'cards' => $game->cardViews($dealtCards),
             ]);

@@ -14,11 +14,11 @@
  * funzioni condivise dagli stati di gioco (squadre, posti, carte, scope). Le regole pure (prese, punteggi)
  * sono in Rules/ScopaRules.php.
  *
- * Come sono salvate le carte (componente Deck, tabella `scopa_card`):
- *  - card type     = seme (1 denari, 2 coppe, 3 bastoni, 4 spade)
- *  - card type_arg = valore (1..10)
- *  - posizioni     : 'deck' (mazzo), 'hand' (mano, arg = id giocatore), 'table' (tavolo),
- *                    'captured' (carte prese, arg = id squadra)
+ * Come sono salvate le carte (componente ItemManager, classe Card, tabella `card`):
+ *  - suit     = seme (1 denari, 2 coppe, 3 bastoni, 4 spade)
+ *  - rank     = valore (1..10)
+ *  - posizioni: 'deck' (mazzo), 'hand' (mano, arg = id giocatore), 'table' (tavolo),
+ *               'captured' (carte prese, arg = id squadra)
  *
  * Squadre: con 2 giocatori ogni giocatore è una squadra (id squadra = numero del posto); con 4 giocatori
  * i posti 1 e 3 formano la squadra 1, i posti 2 e 4 la squadra 2.
@@ -27,6 +27,9 @@ declare(strict_types=1);
 
 namespace Bga\Games\ProjectBiagio;
 
+use Bga\GameFramework\Components\ItemManager\ItemLocation;
+use Bga\GameFramework\Components\ItemManager\ItemManager;
+use Bga\GameFramework\Components\ItemManager\Location;
 use Bga\Games\ProjectBiagio\Rules\ScopaRules;
 use Bga\Games\ProjectBiagio\States\NewDeal;
 
@@ -52,19 +55,26 @@ class Game extends \Bga\GameFramework\Table
      */
     private const AVERAGE_POINTS_PER_DEAL = 3;
 
-    public \Bga\GameFramework\Components\Deck $cards;
+    /** @var ItemManager<Card> gestore delle 40 carte (tabella `card`) */
+    public ItemManager $cards;
 
     /** @var array<int, int[]>|null cache: id squadra => id dei giocatori della squadra, in ordine di tavolo */
     private ?array $playerIdsByTeamCache = null;
 
     /**
-     * Crea il componente Deck collegato alla tabella `scopa_card`. Va creato qui, non nel setup.
+     * Crea il gestore delle carte (ItemManager) per la classe Card, registrando le quattro posizioni in cui una
+     * carta può trovarsi. Va creato qui, non nel setup.
      */
     public function __construct()
     {
         parent::__construct();
 
-        $this->cards = $this->bga->deckFactory->createDeck('scopa_card');
+        $this->cards = $this->bga->itemManagerFactory->createItemManager(Card::class, null, [
+            new ItemLocation(self::LOCATION_DECK),
+            new ItemLocation(self::LOCATION_HAND),
+            new ItemLocation(self::LOCATION_TABLE),
+            new ItemLocation(self::LOCATION_CAPTURED),
+        ]);
     }
 
     ///////////////////////////////////////////////////
@@ -203,29 +213,42 @@ class Game extends \Bga\GameFramework\Table
     //// Carte
 
     /**
-     * Converte una carta restituita dal componente Deck nel formato usato dal client e da ScopaRules
-     * (id, seme, valore).
+     * Restituisce la posizione di una carta nel formato di ItemManager: una posizione precisa se si indica anche
+     * l'argomento (mano di un giocatore, pila di una squadra), altrimenti un filtro che comprende ogni argomento
+     * (per esempio "tutte le mani").
+     */
+    public function locationOf(string $location, ?int $locationArg = null): Location
+    {
+        return $locationArg === null ? Location::filter($location) : Location::from($location, $locationArg);
+    }
+
+    /**
+     * Converte una carta (oggetto Card) nel formato usato dal client e da ScopaRules (id, seme, valore).
      *
      * @return array{id:int, suit:int, rank:int}
      */
-    public function cardView(array $deckCard): array
+    public function cardView(Card $card): array
     {
         return [
-            'id' => (int) $deckCard['id'],
-            'suit' => (int) $deckCard['type'],
-            'rank' => (int) $deckCard['type_arg'],
+            'id' => (int) $card->id,
+            'suit' => (int) $card->suit,
+            'rank' => (int) $card->rank,
         ];
     }
 
     /**
-     * Converte un elenco di carte del Deck in carte per il client, ordinate per id
-     * (così l'ordine è sempre prevedibile).
+     * Converte un elenco di carte (array o Collection restituita da ItemManager) in carte per il client,
+     * ordinate per id (così l'ordine è sempre prevedibile).
      *
+     * @param iterable<Card> $cards
      * @return array[]
      */
-    public function cardViews(array $deckCards): array
+    public function cardViews(iterable $cards): array
     {
-        $cardViews = array_map(fn($deckCard) => $this->cardView($deckCard), array_values($deckCards));
+        $cardViews = [];
+        foreach ($cards as $card) {
+            $cardViews[] = $this->cardView($card);
+        }
         usort($cardViews, fn($first, $second) => $first['id'] <=> $second['id']);
         return $cardViews;
     }
@@ -281,15 +304,14 @@ class Game extends \Bga\GameFramework\Table
     }
 
     /**
-     * Conta le carte in una posizione e restituisce sempre un intero. Il componente Deck restituisce il numero
-     * come testo (per esempio "0"), quindi confronti stretti come `=== 0` fallirebbero: si usa sempre questo metodo.
+     * Conta le carte in una posizione e restituisce un intero (con ItemManager il conteggio è già un intero).
      *
      * @param string   $location     posizione delle carte (mazzo, mano, tavolo, prese)
      * @param int|null $locationArg  argomento della posizione (id giocatore o id squadra), null = tutti
      */
     public function countCardsIn(string $location, ?int $locationArg = null): int
     {
-        return (int) $this->cards->countCardInLocation($location, $locationArg);
+        return $this->cards->countItemsInLocation($this->locationOf($location, $locationArg));
     }
 
     /**
@@ -299,7 +321,7 @@ class Game extends \Bga\GameFramework\Table
      */
     public function tableCards(): array
     {
-        return $this->cardViews($this->cards->getCardsInLocation(self::LOCATION_TABLE));
+        return $this->cardViews($this->cards->getItemsInLocation(self::LOCATION_TABLE));
     }
 
     /**
@@ -312,8 +334,8 @@ class Game extends \Bga\GameFramework\Table
     {
         $tableCards = $this->tableCards();
         $capturesByHandCardId = [];
-        foreach ($this->cards->getCardsInLocation(self::LOCATION_HAND, $playerId) as $handCard) {
-            $capturesByHandCardId[(int) $handCard['id']] = ScopaRules::legalCaptures((int) $handCard['type_arg'], $tableCards);
+        foreach ($this->cards->getItemsInLocation($this->locationOf(self::LOCATION_HAND, $playerId)) as $handCard) {
+            $capturesByHandCardId[$handCard->id] = ScopaRules::legalCaptures($handCard->rank, $tableCards);
         }
         return $capturesByHandCardId;
     }
@@ -427,7 +449,7 @@ class Game extends \Bga\GameFramework\Table
         $gameData['teamNames'] = $teamNameByTeam;
         $gameData['target'] = $this->targetScore();
         $gameData['dealer'] = $this->getDealerId();
-        $gameData['hand'] = $this->cardViews($this->cards->getCardsInLocation(self::LOCATION_HAND, $currentPlayerId));
+        $gameData['hand'] = $this->cardViews($this->cards->getItemsInLocation($this->locationOf(self::LOCATION_HAND, $currentPlayerId)));
         $gameData['table'] = $this->tableCards();
         $gameData['handCounts'] = $this->handCounts();
         $gameData['deckCount'] = $this->countCardsIn(self::LOCATION_DECK);
@@ -446,6 +468,9 @@ class Game extends \Bga\GameFramework\Table
      */
     protected function setupNewGame($players, $options = [])
     {
+        // Crea la tabella delle carte (`card`): va fatto per primo, prima di creare qualsiasi carta.
+        $this->cards->initDb();
+
         $gameinfos = $this->getGameinfos();
         $availableColors = $gameinfos['player_colors'];
 
@@ -480,14 +505,14 @@ class Game extends \Bga\GameFramework\Table
         $this->bga->globals->set('scope', []);
         $this->bga->globals->set('last_capturer', 0);
 
-        // Il mazzo italiano da 40 carte: seme in `type` (1 denari, 2 coppe, 3 bastoni, 4 spade), valore in `type_arg`.
+        // Il mazzo italiano da 40 carte: seme in `suit` (1 denari, 2 coppe, 3 bastoni, 4 spade), valore in `rank`.
         $cardsToCreate = [];
         foreach (ScopaRules::ALL_SUITS as $suit) {
             for ($rank = 1; $rank <= 10; $rank++) {
-                $cardsToCreate[] = ['type' => $suit, 'type_arg' => $rank, 'nbr' => 1];
+                $cardsToCreate[] = ['location' => self::LOCATION_DECK, 'suit' => $suit, 'rank' => $rank];
             }
         }
-        $this->cards->createCards($cardsToCreate, self::LOCATION_DECK);
+        $this->cards->createItems($cardsToCreate);
 
         $this->bga->tableStats->init('deals_played', 0);
         $this->bga->playerStats->init([
