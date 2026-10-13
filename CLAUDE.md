@@ -16,6 +16,8 @@ Gioco di carte Scopa per BGA Studio, nuovo framework 2025+. Stato, regole e cose
 
 - `modules/php/Rules/ScopaRules.php`: regole pure, senza framework (prese, primiera, punteggi). Test: `php tests/ScopaRulesTest.php`.
 - `modules/php/Game.php`: setup, squadre, dati per il client. `modules/php/States/`: stati di gioco (id 3, 4, 10, 90, 95, 98).
+- `modules/php/Card.php`: la carta (`suit`, `rank`, `location`, `locationArg`, `order`) gestita dal componente **ItemManager**
+  (il `Deck` è deprecato). La tabella `card` la crea `initDb()` in `setupNewGame`: **non va dichiarata in `dbmodel.sql`**.
 - `src/ts/` (Game.ts, CardView.ts, States/PlayerTurn.ts) e `src/scss/Game.scss`: client. Si compila con `npm run build` in
   `modules/js/Game.js` e `projectbiagio.css` (file generati, non modificarli a mano).
 - `img/cards.jpg`: sprite delle carte napoletane (pubblico dominio, vedi `doc/CREDITS.md`). Unico stile di carte: niente carte
@@ -32,7 +34,8 @@ Gioco di carte Scopa per BGA Studio, nuovo framework 2025+. Stato, regole e cose
 
 ## Errori già incontrati (non ripeterli)
 
-1. `Deck::countCardInLocation` restituisce **testo**: usare `Game::countCardsIn()` (intero).
+1. Le carte si gestiscono con `ItemManager` (`$game->cards`), non con `Deck` (deprecato). Le posizioni con argomento si
+   scrivono con `Game::locationOf($location, $arg)`; per contare usare `Game::countCardsIn()`.
 2. BGA scarta gli **array vuoti** inviati dal client: i parametri array PHP vanno con default (`array $capture_ids = []`).
 3. Non riabilitare il pulsante BGA togliendo la classe `disabled`: usare `scopa-button-inactive` e validare nella callback.
 4. I numeri dal server possono essere stringhe: `Number()` prima di sommare.
@@ -48,4 +51,7 @@ Il 5 ottobre 2026 è stata fatta una revisione generale (commit `374c376`, `f061
 ripulito e commentato, solo carte napoletane, nomi napoletani traducibili nel log (argomenti annidati con `i18n`, **da
 verificare su Studio**), tipi BGA ufficiali, punteggio obiettivo fisso, file superflui eliminati. Dopo queste modifiche serve
 Reload su Studio e un tavolo nuovo; l'utente sta provando il gioco su Studio. Prossimi passi in `doc/STATO_PROGETTO.md`.
+Il 13 ottobre 2026 le carte sono passate dal componente `Deck` (deprecato) a `ItemManager` (tabella `card`, classe `Card`):
+**da verificare su Studio** (Upload, Reload, tavolo nuovo, prova 1v1 e 2v2); se compaiono errori, controllare la registrazione
+delle posizioni in `Game::__construct` e il filtro `Location::filter` in `Game::locationOf`.
 Un riepilogo generale (file, origine, stati, flusso, regole) è in `C:/Users/falco/Desktop/STRUTTURA_PROGETTO.md`, fuori dal progetto.

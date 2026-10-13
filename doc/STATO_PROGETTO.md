@@ -1,6 +1,6 @@
 # Stato del progetto - Scopa su BGA Studio
 
-Ultimo aggiornamento: 5 ottobre 2026.
+Ultimo aggiornamento: 13 ottobre 2026.
 
 ## Dove siamo
 
@@ -24,6 +24,12 @@ preferenza "Card style"; rimossa l'opzione "Target score" (obiettivo fisso 11/21
 dei simboli francesi; tipi client dal file ufficiale `bga-framework.d.ts`; eliminati `libs.ts`, `AUTHOR_QUESTIONS.md` e i
 README del template. Da verificare su Studio: il log con i nomi annidati e il Reload senza opzioni/preferenze.
 
+**13 ottobre 2026 - migrazione a ItemManager**: la documentazione BGA indica il componente `Deck` come deprecato e consiglia
+`ItemManager`. Le carte sono ora la classe `modules/php/Card.php` (campi `suit`, `rank`, `location`, `locationArg`, `order`),
+gestita da `$game->cards`; la tabella `card` è creata da `initDb()` in `setupNewGame` e `dbmodel.sql` non dichiara più
+tabelle. Regole, client e formato delle notifiche invariati. **Da verificare su Studio**: Upload, Reload, tavolo nuovo,
+tabella `card` con 40 righe, partita completa a 2 e a 4 giocatori.
+
 Non è stato fatto, per scelta: il riepilogo di fine smazzata in una finestra (basta il log di gioco).
 
 ## Regole scelte (dettaglio in `ASSUMPTIONS.md`)
@@ -43,7 +49,9 @@ Non è stato fatto, per scelta: il riepilogo di fine smazzata in una finestra (b
 
 ## Cose da sapere (errori già incontrati)
 
-1. Il componente Deck di BGA restituisce i conteggi come **testo**: usare sempre `Game::countCardsIn()`, mai confronti `=== 0` diretti.
+1. Le carte usano `ItemManager`, non il `Deck` deprecato. Le posizioni con argomento (mano di un giocatore, pila di una
+   squadra) si costruiscono con `Game::locationOf()`; i conteggi si leggono con `Game::countCardsIn()`. La tabella `card`
+   non va dichiarata in `dbmodel.sql`.
 2. BGA **scarta gli array vuoti** nelle azioni del client: i parametri array lato PHP devono avere un valore predefinito (vedi `actPlay`).
 3. Il pulsante "disabled" di BGA non si riabilita togliendo la classe: si usa `scopa-button-inactive` e la callback valida.
 4. I numeri inviati dal server possono arrivare come testo: convertire con `Number()` prima di sommare.
