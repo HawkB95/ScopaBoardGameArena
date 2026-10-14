@@ -10,7 +10,7 @@ use Bga\GameFramework\Components\ItemManager\ItemFieldKind;
 
 /**
  * Una carta napoletana, gestita dal componente ItemManager di BGA. Ogni proprietà con l'attributo `ItemField`
- * è una colonna della tabella `card`, che il componente crea da solo con `initDb()` (non va dichiarata in dbmodel.sql).
+ * è una colonna della tabella `card`, che il componente crea da solo con `initDb()`
  *
  * Posizioni (`location`) e relativo argomento (`locationArg`):
  *  - 'deck'     : mazzo (l'ordine nel mazzo è nella colonna `order`)
