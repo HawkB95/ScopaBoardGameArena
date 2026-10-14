@@ -31,7 +31,7 @@ class ScopaRules
     /** Numero minimo di carte prese per vincere il punto "carte". */
     public const MIN_CARDS_FOR_POINT = 21;
 
-    /** Valore di ogni carta nel calcolo della primiera (valore della carta => punti primiera). */
+    /** Valore di ogni carta nel calcolo della primiera */
     private const PRIMIERA_VALUE_BY_RANK = [
         1 => 16, 2 => 12, 3 => 13, 4 => 14, 5 => 15, 6 => 18, 7 => 21, 8 => 10, 9 => 10, 10 => 10,
     ];

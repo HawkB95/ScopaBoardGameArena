@@ -29,8 +29,8 @@ class DealHands extends GameState
 
     /**
      * Viene eseguita ogni volta che tutte le mani sono vuote. Se anche il mazzo è vuoto la smazzata è finita
-     * (EndDeal). Altrimenti ogni giocatore riceve le sue carte (in privato: le vede solo il proprietario),
-     * tutti sanno quante carte ha in mano ciascuno e il giocatore dopo il mazziere diventa attivo.
+     * (EndDeal). Altrimenti ogni giocatore riceve le sue carte
+     * tutti sanno quante carte ha in mano ciascuno e il giocatore dopo il mazziere diventa attivo
      *
      * @return string lo stato successivo: EndDeal oppure PlayerTurn
      */

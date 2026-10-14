@@ -31,8 +31,7 @@ class EndDeal extends GameState
 
     /**
      * Viene eseguita quando mazzo e mani sono vuoti:
-     *  1. le carte rimaste sul tavolo vanno alla squadra che ha preso per ultima (se nessuno ha preso, alla
-     *     squadra di chi ha giocato l'ultima carta);
+     *  1. le carte rimaste sul tavolo vanno alla squadra che ha preso per ultima
      *  2. ogni squadra è valutata con ScopaRules::scoreDeal e si aggiornano punteggio e statistiche dei suoi membri;
      *  3. una notifica per squadra mostra il dettaglio dei punti;
      *  4. se una squadra ha raggiunto l'obiettivo ed è strettamente in testa la partita finisce, altrimenti
@@ -47,6 +46,7 @@ class EndDeal extends GameState
         $cards = $game->cards;
         $teamIds = array_keys($game->getTeams());
 
+        // Se ci sono carte rimaste sul tavolo, vanno alla squadra che ha preso per ultima
         $cardsLeftOnTable = $cards->getItemsInLocation(Game::LOCATION_TABLE);
         if (count($cardsLeftOnTable) > 0) {
             $lastCapturingTeamId = (int) $this->bga->globals->get('last_capturer');
@@ -59,6 +59,7 @@ class EndDeal extends GameState
             ]);
         }
 
+        // Calcola il punteggio della smazzata per ogni squadra
         $scopeByTeam = $game->getScope();
         $capturesByTeam = [];
         foreach ($teamIds as $teamId) {
@@ -101,8 +102,10 @@ class EndDeal extends GameState
                 'players' => $game->playersOfTeam($teamId),
             ]);
         }
-
+        // Controlla se la partita è finita
         $winnerTeamId = ScopaRules::gameWinner($totalScoreByTeam, $game->targetScore());
+
+        // Se la partita è finita, passa a EndScore; altrimenti inizia una nuova smazzata
         return $winnerTeamId !== null ? EndScore::class : NewDeal::class;
     }
 }

@@ -493,19 +493,18 @@ class Game extends \Bga\GameFramework\Table
         $this->reattributeColorsBasedOnPreferences($players, $gameinfos["player_colors"]);
         $this->reloadPlayersBasicInfos();
 
-        // Punteggio obiettivo fisso, deciso dal numero di giocatori (nessuna opzione di tavolo): è salvato nei
-        // globali perché lo leggono il calcolo di fine partita, l'avanzamento e il client.
+        //Imposta il punteggio obiettivo in base al numero di giocatori: 11 con 2 giocatori, 21 con 4 giocatori
         $targetScore = count($players) === 4 ? self::TARGET_SCORE_FOUR_PLAYERS : self::TARGET_SCORE_TWO_PLAYERS;
         $this->bga->globals->set('target', $targetScore);
 
-        // Primo mazziere scelto a caso; dalla seconda smazzata il mazziere passa al giocatore successivo.
+        // Sceglie il mazziere iniziale a caso e azzera il numero di smazzate giocate e le scope fatte
         $playerIds = array_keys($players);
         $this->bga->globals->set('dealer', (int) $playerIds[bga_rand(0, count($playerIds) - 1)]);
         $this->bga->globals->set('deal_no', 0);
         $this->bga->globals->set('scope', []);
         $this->bga->globals->set('last_capturer', 0);
 
-        // Il mazzo italiano da 40 carte: seme in `suit` (1 denari, 2 coppe, 3 bastoni, 4 spade), valore in `rank`.
+        // Crea le 40 carte del mazzo, tutte in posizione "deck"
         $cardsToCreate = [];
         foreach (ScopaRules::ALL_SUITS as $suit) {
             for ($rank = 1; $rank <= 10; $rank++) {
@@ -514,10 +513,11 @@ class Game extends \Bga\GameFramework\Table
         }
         $this->cards->createItems($cardsToCreate);
 
+        // Inizializza le statistiche di partita e giocatore (tutte a 0)
         $this->bga->tableStats->init('deals_played', 0);
         $this->bga->playerStats->init([
             'scope_count', 'settebello_count', 'primiera_count', 'denari_count',
-            'carte_count', 'captures_count', 'discards_count',
+            'carte_count', 'captures_count',
         ], 0);
 
         return NewDeal::class;

@@ -36,11 +36,6 @@
       "id": 15,
       "name": "Captures made",
       "type": "int"
-    },
-    "discards_count": {
-      "id": 16,
-      "name": "Cards put on the table without capturing",
-      "type": "int"
     }
   }
 }
