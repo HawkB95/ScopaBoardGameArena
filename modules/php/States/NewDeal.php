@@ -12,15 +12,15 @@ use Bga\Games\ProjectBiagio\Rules\ScopaRules;
 /**
  * Stato di gioco 3 - inizio di una nuova smazzata.
  * Cambia il mazziere, azzera i contatori della smazzata, mescola il mazzo e (con 2 giocatori) scopre 4 carte
- * sul tavolo. Poi passa alla distribuzione delle mani.
+ * sul tavolo. Poi passa alla distribuzione delle mani
  */
 class NewDeal extends GameState
 {
-    /** Numero di carte scoperte sul tavolo all'inizio di una smazzata a 2 giocatori. */
+    /** Numero di carte scoperte sul tavolo all'inizio di una smazzata a 2 giocatori */
     private const INITIAL_TABLE_CARDS_COUNT = 4;
 
     /**
-     * Dichiara lo stato: id 3, stato di gioco (nessuna azione dei giocatori).
+     * Dichiara lo stato: id 3
      */
     function __construct(
         protected Game $game,
@@ -56,7 +56,7 @@ class NewDeal extends GameState
         $game->cards->moveAllItemsInLocation(null, Game::LOCATION_DECK);
         $game->cards->shuffle(Game::LOCATION_DECK);
 
-        // Con 4 giocatori il tavolo parte vuoto; con 2 giocatori si scoprono 4 carte (da rifare se ci sono 3+ Re).
+        // Con 4 giocatori il tavolo parte vuoto; con 2 giocatori si scoprono 4 carte
         if (!$game->isTeamGame()) {
             do {
                 $game->cards->moveAllItemsInLocation(Game::LOCATION_TABLE, Game::LOCATION_DECK);
