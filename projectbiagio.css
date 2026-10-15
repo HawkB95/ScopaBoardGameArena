@@ -16,13 +16,10 @@
   --scopa-table-color: #1f6b43;
 }
 
+/* ---------- Struttura generale ---------- */
 #scopa-board {
   --scopa-card-ratio: 1.714;
   --scopa-card-height: calc(var(--scopa-card-width) * var(--scopa-card-ratio));
-}
-
-/* ---------- Struttura generale ---------- */
-#scopa-board {
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -85,15 +82,14 @@
   background: #fffdf6;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
   user-select: none;
-  font-family: Georgia, "Times New Roman", serif;
-  transition: box-shadow 0.15s, outline-color 0.15s;
+  transition: box-shadow 0.15s;
 }
 
 /* Dorso della carta (mano degli avversari, mazzo, pile). */
 .scopa-card--back {
-  background: repeating-linear-gradient(45deg, #2b4a8a 0, #2b4a8a 6px, #3a5ea8 6px, #3a5ea8 12px);
   border: 3px solid #fffdf6;
   outline: 1px solid #555;
+  background: repeating-linear-gradient(45deg, #2b4a8a 0, #2b4a8a 6px, #3a5ea8 6px, #3a5ea8 12px);
 }
 
 /* ---------- Mano propria e carte degli avversari ---------- */
@@ -270,7 +266,6 @@
   background-image: url("img/cards.jpg");
   background-size: 1000% 400%;
   background-repeat: no-repeat;
-  background-color: #fffdf6;
   border-radius: 7px;
 }
 

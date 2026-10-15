@@ -19,15 +19,19 @@
     --scopa-table-color: #1f6b43;
 }
 
-// Altezza della carta = larghezza x rapporto. Le carte napoletane dello sprite hanno proporzioni 140x240 (1.714).
-#scopa-board {
-    --scopa-card-ratio: 1.714;
-    --scopa-card-height: calc(var(--scopa-card-width) * var(--scopa-card-ratio));
+// Dorso delle carte: usato dalla carta coperta e dalla pila delle prese.
+@mixin card-back {
+    border: 3px solid #fffdf6;
+    outline: 1px solid #555;
+    background: repeating-linear-gradient(45deg, #2b4a8a 0, #2b4a8a 6px, #3a5ea8 6px, #3a5ea8 12px);
 }
 
 /* ---------- Struttura generale ---------- */
 
 #scopa-board {
+    // Altezza della carta = larghezza x rapporto. Le carte napoletane dello sprite hanno proporzioni 140x240 (1.714).
+    --scopa-card-ratio: 1.714;
+    --scopa-card-height: calc(var(--scopa-card-width) * var(--scopa-card-ratio));
     display: flex;
     flex-direction: column;
     gap: 16px;
@@ -92,16 +96,12 @@
     background: #fffdf6;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
     user-select: none;
-    font-family: Georgia, 'Times New Roman', serif;
-    transition: box-shadow 0.15s, outline-color 0.15s;
+    transition: box-shadow 0.15s;
 }
 
 /* Dorso della carta (mano degli avversari, mazzo, pile). */
 .scopa-card--back {
-    background:
-        repeating-linear-gradient(45deg, #2b4a8a 0, #2b4a8a 6px, #3a5ea8 6px, #3a5ea8 12px);
-    border: 3px solid #fffdf6;
-    outline: 1px solid #555;
+    @include card-back;
 }
 
 /* ---------- Mano propria e carte degli avversari ---------- */
@@ -211,9 +211,7 @@
 
 // Quando la squadra ha carte prese, la pila mostra un dorso.
 .scopa-pile--has-cards .scopa-pile-cards {
-    border: 3px solid #fffdf6;
-    outline: 1px solid #555;
-    background: repeating-linear-gradient(45deg, #2b4a8a 0, #2b4a8a 6px, #3a5ea8 6px, #3a5ea8 12px);
+    @include card-back;
 }
 
 // Evidenziazione temporanea dopo una scopa.
@@ -254,7 +252,7 @@
 
 /* ---------- Annuncio della scopa ---------- */
 
-// Scritta "SCOPA!" al centro del tavolo: compare ingrandita e svanisce.
+// Scritta "SCOPA!" al centro del tavolo
 .scopa-scopa-banner {
     position: absolute;
     top: 50%;
@@ -287,7 +285,6 @@
     background-image: url('img/cards.jpg');
     background-size: 1000% 400%;
     background-repeat: no-repeat;
-    background-color: #fffdf6;
     border-radius: 7px;
 }
 
@@ -321,7 +318,7 @@
     background: #b5473a;
 }
 
-/* ---------- Schermi stretti (telefoni) ---------- */
+/* ---------- Schermi stretti ---------- */
 
 // Con poco spazio le carte si rimpiccioliscono, così anche la mano da 10 carte resta leggibile.
 @media (max-width: 760px) {
