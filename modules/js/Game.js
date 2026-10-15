@@ -1,15 +1,6 @@
-/*
- * Disegno delle carte. Ogni carta è un elemento vuoto: la faccia viene dallo sprite delle carte napoletane
- * (img/cards.jpg), scelta dal CSS con le classi di seme e valore (vedi src/scss/Game.scss).
- * Seme: 1 denari, 2 coppe, 3 bastoni, 4 spade.
- */
-/** Id dell'elemento HTML di una carta. */
 function cardElementId(cardId) {
     return `scopa-card-${cardId}`;
 }
-/**
- * Restituisce il nome completo della carta per tooltip e accessibilità, per esempio "Re di denari".
- */
 function cardName(card) {
     const rankNames = {
         1: _('Ace'), 2: _('Two'), 3: _('Three'), 4: _('Four'), 5: _('Five'),
@@ -20,10 +11,6 @@ function cardName(card) {
     };
     return `${rankNames[card.rank]} - ${suitNames[card.suit]}`;
 }
-/**
- * Crea l'elemento HTML di una carta scoperta. Non ha contenuto: il disegno è lo sprite scelto dalle classi
- * di seme e valore; nome e dati servono al tooltip, all'accessibilità e ai clic/riordino (data-*).
- */
 function createCardElement(card) {
     const cardElement = document.createElement('div');
     cardElement.id = cardElementId(card.id);
@@ -35,24 +22,14 @@ function createCardElement(card) {
     cardElement.setAttribute('aria-label', cardName(card));
     return cardElement;
 }
-/**
- * Crea l'elemento HTML di una carta coperta (dorso), usato per le mani degli avversari e per il mazzo.
- */
 function createCardBackElement() {
     const backElement = document.createElement('div');
     backElement.className = 'scopa-card scopa-card--back';
     return backElement;
 }
-/**
- * Ordina le carte per seme e poi per valore, così la mano è facile da leggere.
- */
 function sortCardsForHand(cards) {
     return [...cards].sort((first, second) => first.suit - second.suit || first.rank - second.rank);
 }
-/**
- * Riordina per seme e valore gli elementi HTML delle carte già presenti nella mano (stesso ordine di
- * sortCardsForHand, ma lavora sugli elementi perché la mano è già disegnata e va solo riordinata, senza ricrearla).
- */
 function sortCardElementsInHand(handElement) {
     const sortedElements = [...handElement.children]
         .map(element => element)
@@ -60,44 +37,21 @@ function sortCardElementsInHand(handElement) {
     sortedElements.forEach(element => handElement.appendChild(element));
 }
 
-/** Id del pulsante di conferma nella barra di stato. */
 const CONFIRM_BUTTON_ID = 'scopa-confirm-button';
-/** Id del pulsante che annulla la selezione corrente. */
 const CANCEL_BUTTON_ID = 'scopa-cancel-button';
-/**
- * Stato PlayerTurn: il giocatore attivo sceglie una carta dalla mano e, se può prendere, quali carte del tavolo
- * prendere. Le prese lecite arrivano dal server (nessuna regola è calcolata qui): il client si limita a
- * guidare la selezione e a inviare l'azione `actPlay`.
- *
- * Funzionamento:
- *  - clic su una carta in mano: la seleziona (di nuovo clic: la deseleziona);
- *  - se esiste una sola presa possibile, viene preselezionata; se ce ne sono più, il giocatore clicca le carte
- *    del tavolo, e quando la selezione coincide con una presa lecita il pulsante "Prendi" si abilita;
- *  - se nessuna presa è possibile, il pulsante diventa "Posa la carta sul tavolo".
- */
 class PlayerTurn {
     constructor(game, bga) {
         this.game = game;
         this.bga = bga;
-        /** Prese lecite per ogni carta in mano, ricevute dal server. */
         this.capturesByCard = {};
-        /** Id della carta in mano selezionata, oppure null. */
         this.selectedHandCardId = null;
-        /** Id delle carte del tavolo selezionate per la presa. */
         this.selectedCaptureIds = [];
-        /** Vero se il giocatore corrente è quello attivo e può agire. */
         this.isActive = false;
     }
-    /**
-     * Chiamata dal framework all'ingresso nello stato. Se il giocatore è attivo prepara la selezione e i pulsanti
-     * della barra di stato; altrimenti mostra solo il titolo di attesa.
-     */
     onEnteringState(args, isCurrentPlayerActive) {
         this.isActive = isCurrentPlayerActive;
         this.selectedHandCardId = null;
         this.selectedCaptureIds = [];
-        // Le prese lecite sono dati privati del giocatore attivo (la mano è nascosta agli altri): il framework le
-        // consegna in `_private`; `captures` copre il caso in cui gli argomenti arrivino già "appiattiti".
         this.capturesByCard = args?.captures ?? args?._private?.captures ?? {};
         if (!isCurrentPlayerActive) {
             this.bga.statusBar.setTitle(_('${actplayer} must play a card'));
@@ -107,19 +61,12 @@ class PlayerTurn {
         this.bga.statusBar.addActionButton(_('Cancel selection'), () => this.onCancelClick(), { id: CANCEL_BUTTON_ID, color: 'secondary' });
         this.refreshSelectionDisplay();
     }
-    /**
-     * Chiamata dal framework all'uscita dallo stato: azzera la selezione e toglie le evidenziazioni dalle carte.
-     */
     onLeavingState() {
         this.isActive = false;
         this.selectedHandCardId = null;
         this.selectedCaptureIds = [];
         this.clearCardHighlights();
     }
-    /**
-     * Gestisce il clic su una carta della propria mano: la seleziona, oppure la deseleziona se era già selezionata.
-     * Se per quella carta esiste una sola presa, la preseleziona.
-     */
     onHandCardClick(cardId) {
         if (!this.isActive || !this.capturesByCard[cardId]) {
             return;
@@ -135,10 +82,6 @@ class PlayerTurn {
         }
         this.refreshSelectionDisplay();
     }
-    /**
-     * Gestisce il clic su una carta del tavolo: la aggiunge o la toglie dalla presa in costruzione. Se dopo il clic
-     * rimane una sola presa compatibile con la selezione, la completa automaticamente.
-     */
     onTableCardClick(cardId) {
         if (!this.isActive || this.selectedHandCardId === null) {
             return;
@@ -159,9 +102,6 @@ class PlayerTurn {
         }
         this.refreshSelectionDisplay();
     }
-    /**
-     * Prese lecite della carta in mano selezionata che contengono tutte le carte del tavolo già scelte.
-     */
     getCompatibleCaptures() {
         if (this.selectedHandCardId === null) {
             return [];
@@ -169,16 +109,10 @@ class PlayerTurn {
         const availableCaptures = this.capturesByCard[this.selectedHandCardId];
         return availableCaptures.filter(capture => this.selectedCaptureIds.every(selectedId => capture.includes(selectedId)));
     }
-    /**
-     * Id delle carte del tavolo che il giocatore può ancora cliccare per completare una presa lecita.
-     */
     getSelectableTableCardIds() {
         const idsOfCompatibleCaptures = this.getCompatibleCaptures().flat();
         return [...new Set(idsOfCompatibleCaptures)].filter(cardId => !this.selectedCaptureIds.includes(cardId));
     }
-    /**
-     * Vero se le carte selezionate coincidono esattamente con una presa lecita.
-     */
     isSelectionACompleteCapture() {
         if (this.selectedHandCardId === null || this.selectedCaptureIds.length === 0) {
             return false;
@@ -190,15 +124,10 @@ class PlayerTurn {
                 && sortedCapture.every((cardId, index) => cardId === sortedSelection[index]);
         });
     }
-    /**
-     * Aggiorna tutto ciò che il giocatore vede della selezione: evidenziazioni delle carte, titolo della barra di
-     * stato e stato dei pulsanti "Prendi / Posa la carta" e "Annulla".
-     */
     refreshSelectionDisplay() {
         this.clearCardHighlights();
         const confirmButton = document.getElementById(CONFIRM_BUTTON_ID);
         const cancelButton = document.getElementById(CANCEL_BUTTON_ID);
-        // Nessuna carta in mano selezionata: tutte le carte della mano sono giocabili.
         if (this.selectedHandCardId === null) {
             Object.keys(this.capturesByCard).forEach(cardId => this.addClass(Number(cardId), 'scopa-card--playable'));
             this.bga.statusBar.setTitle(_('${you} must play a card'));
@@ -210,7 +139,6 @@ class PlayerTurn {
         this.setButtonVisible(cancelButton, true);
         const availableCaptures = this.capturesByCard[this.selectedHandCardId];
         if (availableCaptures.length === 0) {
-            // Nessuna presa possibile: la carta può solo essere posata sul tavolo.
             this.bga.statusBar.setTitle(_('${you} cannot capture: put the card on the table'));
             this.setButtonState(confirmButton, true, _('Put the card on the table'));
             return;
@@ -220,10 +148,6 @@ class PlayerTurn {
         this.bga.statusBar.setTitle(_('${you} must choose the cards to capture'));
         this.setButtonState(confirmButton, this.isSelectionACompleteCapture(), _('Capture'));
     }
-    /**
-     * Invia l'azione al server con la carta giocata e le carte da prendere (elenco vuoto = posa sul tavolo).
-     * Va chiamata solo da un clic del giocatore.
-     */
     onConfirmClick() {
         if (this.selectedHandCardId === null) {
             this.bga.dialogs.showMessage(_('Select a card from your hand first'), 'error');
@@ -234,51 +158,33 @@ class PlayerTurn {
             this.bga.dialogs.showMessage(_('Select the cards to capture first'), 'error');
             return;
         }
-        // Con una lista di prese vuota il parametro non viene inviato (BGA scarta gli array vuoti): il server
-        // lo considera allora una posa sul tavolo.
         const actionArguments = { card_id: this.selectedHandCardId };
         if (!noCapturePossible) {
             actionArguments.capture_ids = this.selectedCaptureIds;
         }
         this.bga.actions.performAction('actPlay', actionArguments);
     }
-    /**
-     * Annulla la selezione corrente (carta in mano e carte del tavolo) senza contattare il server.
-     */
     onCancelClick() {
         this.selectedHandCardId = null;
         this.selectedCaptureIds = [];
         this.refreshSelectionDisplay();
     }
-    /**
-     * Toglie dalle carte tutte le classi di evidenziazione usate dalla selezione.
-     */
     clearCardHighlights() {
         document.querySelectorAll('.scopa-card--playable, .scopa-card--selected, .scopa-card--selectable').forEach(cardElement => {
             cardElement.classList.remove('scopa-card--playable', 'scopa-card--selected', 'scopa-card--selectable');
         });
     }
-    /**
-     * Aggiunge una classe CSS alla carta con l'id indicato (se esiste).
-     */
     addClass(cardId, className) {
         document.getElementById(cardElementId(cardId))?.classList.add(className);
     }
-    /**
-     * Abilita o disabilita un pulsante della barra di stato e ne cambia il testo.
-     */
     setButtonState(button, isEnabled, label) {
         if (!button) {
             return;
         }
-        // Non si usa la classe 'disabled' di BGA: il pulsante resta cliccabile e il controllo è nella callback.
         button.classList.remove('disabled');
         button.classList.toggle('scopa-button-inactive', !isEnabled);
         button.textContent = label;
     }
-    /**
-     * Mostra o nasconde un pulsante della barra di stato.
-     */
     setButtonVisible(button, isVisible) {
         if (button) {
             button.style.display = isVisible ? '' : 'none';
@@ -286,35 +192,18 @@ class PlayerTurn {
     }
 }
 
-/** Durata in millisecondi degli spostamenti delle carte. */
 const CARD_MOVE_DURATION_MS = 500;
-/** Durata in millisecondi della scritta "SCOPA!" mostrata sul tavolo. */
 const SCOPA_BANNER_DURATION_MS = 1400;
-/** Pausa in millisecondi tra la carta posata sul tavolo e la presa. */
 const PAUSE_BEFORE_CAPTURE_MS = 450;
-/**
- * Classe principale del client: costruisce l'interfaccia (tavolo, mano, mazzo, pile delle prese, avversari),
- * gestisce i clic sulle carte e reagisce alle notifiche del server animando le carte.
- */
 class Game {
     constructor(bga) {
-        /** Carte in mano a ogni giocatore, aggiornate dalle notifiche. */
         this.handCounts = {};
-        /** Carte prese da ogni squadra, aggiornate dalle notifiche. */
         this.capturedCounts = {};
-        /** Scope fatte da ogni squadra nella smazzata corrente, aggiornate dalle notifiche. */
         this.scopeCounts = {};
         this.bga = bga;
-        // Registra la classe che gestisce lo stato PlayerTurn (stesso nome della classe PHP).
         this.playerTurn = new PlayerTurn(this, bga);
         this.bga.states.register('PlayerTurn', this.playerTurn);
     }
-    ///////////////////////////////////////////////////
-    //// Costruzione dell'interfaccia
-    /**
-     * Costruisce l'interfaccia a partire dai dati inviati dal server. Viene chiamata al caricamento e a ogni
-     * aggiornamento della pagina, quindi deve disegnare lo stato completo del gioco.
-     */
     setup(gamedatas) {
         this.gamedatas = gamedatas;
         this.currentPlayerId = this.bga.players.getCurrentPlayerId();
@@ -332,32 +221,17 @@ class Game {
         this.connectCardClicks();
         this.bga.notifications.setupPromiseNotifications({});
     }
-    /**
-     * Converte in numeri tutti i valori di un oggetto: i dati inviati dal server possono arrivare come testo
-     * (per esempio "2"), e sommandoli si otterrebbe una concatenazione ("2" + 1 = "21") invece di un numero.
-     */
     toNumberRecord(values) {
         const numericValues = {};
         Object.keys(values).forEach(key => numericValues[Number(key)] = Number(values[Number(key)]));
         return numericValues;
     }
-    /**
-     * Ridisegna le carte coperte di tutti gli avversari (il giocatore corrente non ha un dorso da mostrare:
-     * le sue carte sono nella mano scoperta, e `scopa-opponent-hand-<id>` per lui non esiste).
-     */
     renderAllOpponentHands() {
         Object.keys(this.handCounts).forEach(playerId => this.renderOpponentHand(Number(playerId)));
     }
-    /**
-     * Aggiorna la pila delle prese di ogni squadra.
-     */
     renderAllPiles() {
         Object.keys(this.capturedCounts).forEach(teamId => this.renderPile(Number(teamId)));
     }
-    /**
-     * Crea la struttura HTML del gioco: avversari in alto, al centro mazzo + tavolo + pile delle prese,
-     * in basso la propria mano.
-     */
     buildBoard() {
         const players = this.gamedatas.players;
         const opponentPlayerIds = this.otherPlayerIdsInDisplayOrder();
@@ -396,11 +270,6 @@ class Game {
                 ${myAreaHtml}
             </div>`);
     }
-    /**
-     * Restituisce gli altri giocatori nell'ordine in cui vengono mostrati in alto, da sinistra a destra:
-     * partendo dal giocatore che gioca dopo di me. Con 4 giocatori l'ordine è quindi: il mio successivo,
-     * il mio compagno (di fronte a me) e il giocatore che gioca prima di me. Per uno spettatore vale l'ordine dei posti.
-     */
     otherPlayerIdsInDisplayOrder() {
         const playerOrder = this.gamedatas.playerOrder.map(Number);
         const myIndex = playerOrder.indexOf(this.currentPlayerId);
@@ -409,10 +278,6 @@ class Game {
             : [...playerOrder.slice(myIndex + 1), ...playerOrder.slice(0, myIndex)];
         return orderFromMe.filter(playerId => playerId !== this.currentPlayerId);
     }
-    /**
-     * Etichetta del ruolo di un giocatore rispetto a me nelle partite a squadre: "Partner" per il compagno,
-     * "Opponent" per gli avversari. Vuota con 2 giocatori, per me e per gli spettatori.
-     */
     roleBadgeHtml(playerId) {
         const myPlayer = this.gamedatas.players[this.currentPlayerId];
         if (!this.gamedatas.isTeamGame || !myPlayer || playerId === this.currentPlayerId) {
@@ -423,10 +288,6 @@ class Game {
             ? `<span class="scopa-role-badge scopa-role-badge--partner">${_('Partner')}</span>`
             : `<span class="scopa-role-badge scopa-role-badge--opponent">${_('Opponent')}</span>`;
     }
-    /**
-     * HTML dell'intestazione di un giocatore: nome (nel suo colore) e il segnalino "Mazziere", nascosto
-     * finché non è il suo turno di dare.
-     */
     seatHtml(playerId) {
         const player = this.gamedatas.players[playerId];
         return `
@@ -436,9 +297,6 @@ class Game {
                 <span class="scopa-dealer-badge">${_('Dealer')}</span>
             </div>`;
     }
-    /**
-     * Collega i clic sulle carte della mano e del tavolo allo stato PlayerTurn (un solo ascoltatore per contenitore).
-     */
     connectCardClicks() {
         document.getElementById('scopa-hand')?.addEventListener('click', event => {
             const cardId = this.cardIdFromEvent(event);
@@ -453,25 +311,14 @@ class Game {
             }
         });
     }
-    /**
-     * Ricava l'id della carta su cui si è cliccato (o null se il clic non era su una carta).
-     */
     cardIdFromEvent(event) {
         const cardElement = event.target.closest('.scopa-card');
         return cardElement?.dataset.cardId ? Number(cardElement.dataset.cardId) : null;
     }
-    ///////////////////////////////////////////////////
-    //// Disegno delle varie parti
-    /**
-     * Mostra il segnalino "Mazziere" solo accanto al mazziere indicato.
-     */
     renderDealer(dealerId) {
         document.querySelectorAll('.scopa-seat').forEach(seat => seat.classList.remove('scopa-seat--dealer'));
         document.getElementById(`scopa-seat-${dealerId}`)?.classList.add('scopa-seat--dealer');
     }
-    /**
-     * Aggiorna il numero di carte rimaste nel mazzo e nasconde il mazzo quando è vuoto.
-     */
     renderDeckCount(deckCount) {
         const deckCountElement = document.getElementById('scopa-deck-count');
         if (deckCountElement) {
@@ -479,18 +326,12 @@ class Game {
         }
         document.getElementById('scopa-deck')?.classList.toggle('scopa-deck--empty', deckCount === 0);
     }
-    /**
-     * Mostra il punteggio da raggiungere per vincere.
-     */
     renderTargetScore(target) {
         const targetElement = document.getElementById('scopa-target');
         if (targetElement) {
             targetElement.textContent = String(target);
         }
     }
-    /**
-     * Svuota il tavolo e vi disegna le carte indicate (senza animazione).
-     */
     renderTable(cards) {
         const tableElement = document.getElementById('scopa-table');
         if (!tableElement) {
@@ -499,9 +340,6 @@ class Game {
         tableElement.innerHTML = '';
         cards.forEach(card => tableElement.appendChild(createCardElement(card)));
     }
-    /**
-     * Svuota la propria mano e vi disegna le carte indicate, ordinate per seme e valore (senza animazione).
-     */
     renderHand(cards) {
         const handElement = document.getElementById('scopa-hand');
         if (!handElement) {
@@ -510,9 +348,6 @@ class Game {
         handElement.innerHTML = '';
         sortCardsForHand(cards).forEach(card => handElement.appendChild(createCardElement(card)));
     }
-    /**
-     * Ridisegna le carte coperte della mano di un avversario in base al numero di carte che ha in mano.
-     */
     renderOpponentHand(playerId) {
         const opponentHandElement = document.getElementById(`scopa-opponent-hand-${playerId}`);
         if (!opponentHandElement) {
@@ -523,9 +358,6 @@ class Game {
             opponentHandElement.appendChild(createCardBackElement());
         }
     }
-    /**
-     * Aggiorna la pila delle prese di una squadra: numero di carte, numero di scope e dorso visibile se non è vuota.
-     */
     renderPile(teamId) {
         const capturedCount = this.capturedCounts[teamId] ?? 0;
         const countElement = document.getElementById(`scopa-pile-count-${teamId}`);
@@ -538,19 +370,9 @@ class Game {
         }
         document.getElementById(`scopa-pile-${teamId}`)?.classList.toggle('scopa-pile--has-cards', capturedCount > 0);
     }
-    ///////////////////////////////////////////////////
-    //// Animazioni
-    /**
-     * Vero se le animazioni sono attive (il giocatore può disattivarle nelle impostazioni di BGA).
-     */
     animationsActive() {
         return this.bga.gameui.bgaAnimationsActive();
     }
-    /**
-     * Sposta un elemento in un nuovo contenitore con un'animazione di scorrimento (tecnica FLIP: si misura la
-     * posizione prima e dopo il cambio di contenitore e si anima la differenza). Se richiesto, alla fine
-     * l'elemento viene eliminato (usato per le carte che finiscono nelle pile delle prese).
-     */
     async moveElement(element, newParent, removeAtEnd = false) {
         const startRect = element.getBoundingClientRect();
         newParent.appendChild(element);
@@ -561,26 +383,18 @@ class Game {
             element.remove();
         }
     }
-    /**
-     * Anima un elemento dalla posizione indicata (rettangolo di partenza) fino a dove si trova ora.
-     */
     async slideFrom(element, startRect) {
         const endRect = element.getBoundingClientRect();
         const deltaX = startRect.left - endRect.left;
         const deltaY = startRect.top - endRect.top;
         element.style.zIndex = '20';
         const animation = element.animate([{ transform: `translate(${deltaX}px, ${deltaY}px)` }, { transform: 'none' }], { duration: CARD_MOVE_DURATION_MS, easing: 'ease-in-out' });
-        // Il limite di tempo è necessario perché BGA esegue le notifiche una dopo l'altra: se il browser non
-        // portasse a termine l'animazione (per esempio in una scheda in secondo piano) la coda resterebbe bloccata.
         await Promise.race([
             animation.finished.catch(() => undefined),
             new Promise(resolve => setTimeout(resolve, CARD_MOVE_DURATION_MS + 300)),
         ]);
         element.style.zIndex = '';
     }
-    /**
-     * Aggiunge una carta a un contenitore facendola partire dal mazzo (animazione di distribuzione).
-     */
     async dealCardFromDeck(cardElement, destination) {
         const deckRect = document.getElementById('scopa-deck').getBoundingClientRect();
         destination.appendChild(cardElement);
@@ -588,19 +402,11 @@ class Game {
             await this.slideFrom(cardElement, deckRect);
         }
     }
-    /**
-     * Pausa che rispetta l'impostazione delle animazioni (nessuna attesa se sono disattivate).
-     */
     async pause(milliseconds) {
         if (this.animationsActive()) {
             await this.bga.gameui.wait(milliseconds);
         }
     }
-    ///////////////////////////////////////////////////
-    //// Notifiche dal server (il nome è 'notif_' + nome della notifica PHP)
-    /**
-     * Nuova smazzata: ripulisce tavolo, mano e pile, aggiorna il mazziere e distribuisce le carte scoperte sul tavolo.
-     */
     async notif_newDeal(args) {
         document.getElementById('scopa-hand')?.replaceChildren();
         document.getElementById('scopa-table')?.replaceChildren();
@@ -619,9 +425,6 @@ class Game {
         }
         this.renderDeckCount(Number(args.deckCount));
     }
-    /**
-     * Carte ricevute dal giocatore corrente (notifica privata): le aggiunge alla mano facendole arrivare dal mazzo.
-     */
     async notif_dealHand(args) {
         const handElement = document.getElementById('scopa-hand');
         if (!handElement) {
@@ -630,12 +433,8 @@ class Game {
         for (const card of args.cards) {
             await this.dealCardFromDeck(createCardElement(card), handElement);
         }
-        // Le carte sono arrivate una alla volta: a fine distribuzione si riordina l'intera mano.
         sortCardElementsInHand(handElement);
     }
-    /**
-     * Distribuzione conclusa: aggiorna il numero di carte in mano a ogni giocatore e quelle rimaste nel mazzo.
-     */
     notif_handsDealt(args) {
         Object.keys(args.handCounts).forEach(playerId => {
             this.handCounts[Number(playerId)] = Number(args.handCounts[Number(playerId)]);
@@ -645,17 +444,12 @@ class Game {
         });
         this.renderDeckCount(Number(args.deckCount));
     }
-    /**
-     * Un giocatore ha giocato una carta: la porta sul tavolo e, se ha preso, la porta insieme alle carte prese
-     * nella pila della sua squadra; se è una scopa aggiorna il contatore e la evidenzia.
-     */
     async notif_cardPlayed(args) {
         const playerId = Number(args.player_id);
         const teamId = Number(args.team);
         const tableElement = document.getElementById('scopa-table');
         let playedCardElement = document.getElementById(cardElementId(args.card.id));
         if (!playedCardElement) {
-            // Carta di un avversario: compare al posto di uno dei suoi dorsi e scorre sul tavolo.
             const opponentHandElement = document.getElementById(`scopa-opponent-hand-${playerId}`);
             opponentHandElement?.lastElementChild?.remove();
             playedCardElement = createCardElement(args.card);
@@ -680,9 +474,6 @@ class Game {
         }
         this.renderPile(teamId);
     }
-    /**
-     * Mostra per un attimo la scritta "SCOPA!" al centro del tavolo, poi la toglie.
-     */
     async showScopaBanner(tableElement) {
         const bannerElement = document.createElement('div');
         bannerElement.className = 'scopa-scopa-banner';
@@ -691,9 +482,6 @@ class Game {
         await this.pause(SCOPA_BANNER_DURATION_MS);
         bannerElement.remove();
     }
-    /**
-     * Fine smazzata: le carte rimaste sul tavolo vanno alla squadra che ha preso per ultima.
-     */
     async notif_leftoverCaptured(args) {
         const teamId = Number(args.team);
         const pileCardsElement = document.getElementById(`scopa-pile-cards-${teamId}`);
@@ -704,10 +492,6 @@ class Game {
         this.capturedCounts[teamId] = (this.capturedCounts[teamId] ?? 0) + args.captured.length;
         this.renderPile(teamId);
     }
-    /**
-     * Punteggio di una squadra a fine smazzata: aggiorna il punteggio totale nei pannelli dei suoi giocatori
-     * e mostra i punti guadagnati accanto alla pila.
-     */
     async notif_teamScored(args) {
         args.players.forEach(playerId => {
             this.bga.playerPanels.getScoreCounter(Number(playerId)).toValue(Number(args.total));

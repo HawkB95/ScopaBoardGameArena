@@ -6,6 +6,7 @@
       "strict": false,
       "lib": ["dom", "esnext"],
       "sourceMap": false,
+      "removeComments": true,
       "rootDir": "."
     },
     "include": [
