@@ -12,16 +12,7 @@
  *
  * Scopa: classe principale del gioco. Contiene la preparazione della partita, i dati inviati al client e le
  * funzioni condivise dagli stati di gioco (squadre, posti, carte, scope). Le regole pure (prese, punteggi)
- * sono in Rules/ScopaRules.php.
- *
- * Come sono salvate le carte (componente ItemManager, classe Card, tabella `card`):
- *  - suit     = seme (1 denari, 2 coppe, 3 bastoni, 4 spade)
- *  - rank     = valore (1..10)
- *  - posizioni: 'deck' (mazzo), 'hand' (mano, arg = id giocatore), 'table' (tavolo),
- *               'captured' (carte prese, arg = id squadra)
- *
- * Squadre: con 2 giocatori ogni giocatore è una squadra (id squadra = numero del posto); con 4 giocatori
- * i posti 1 e 3 formano la squadra 1, i posti 2 e 4 la squadra 2.
+ * sono in Rules/ScopaRules.php
  */
 declare(strict_types=1);
 
@@ -51,7 +42,6 @@ class Game extends \Bga\GameFramework\Table
 
     /**
      * Media approssimativa dei punti fatti da una squadra in una smazzata, usata solo per stimare l'avanzamento
-     * della partita (la durata reale non è prevedibile: dipende da quando qualcuno raggiunge l'obiettivo).
      */
     private const AVERAGE_POINTS_PER_DEAL = 3;
 
@@ -63,7 +53,7 @@ class Game extends \Bga\GameFramework\Table
 
     /**
      * Crea il gestore delle carte (ItemManager) per la classe Card, registrando le quattro posizioni in cui una
-     * carta può trovarsi. Va creato qui, non nel setup.
+     * carta può trovarsi
      */
     public function __construct()
     {
@@ -81,17 +71,14 @@ class Game extends \Bga\GameFramework\Table
     //// Squadre e posti
 
     /**
-     * Vero quando si gioca in 4 giocatori divisi in due squadre da due.
+     * Vero quando si gioca in 4
      */
     public function isTeamGame(): bool
     {
         return $this->getPlayersNumber() === 4;
     }
 
-    /**
-     * Restituisce la squadra (1 o 2) di un giocatore. Con 2 giocatori la squadra è il numero del posto; con
-     * 4 giocatori i compagni siedono di fronte (posti 1 e 3 = squadra 1, posti 2 e 4 = squadra 2).
-     */
+    /** Restituisce la squadra (1 o 2) di un giocatore, o il numero del giocatore stesso se si gioca in 2 */
     public function teamOf(int $playerId): int
     {
         $seatNumber = (int) $this->getPlayerNoById($playerId);
@@ -100,8 +87,7 @@ class Game extends \Bga\GameFramework\Table
 
     /**
      * Restituisce i giocatori di ogni squadra, indicizzati per id squadra. Il risultato è messo in cache
-     * perché le squadre non cambiano durante la partita e questo metodo è chiamato molte volte per richiesta
-     * (punteggi, nomi, pile): così si evita di rifare le query ad ogni chiamata.
+     * perché le squadre non cambiano durante la partita e questo metodo è chiamato altre volte per richiesta
      *
      * @return array<int, int[]> id squadra => id dei giocatori in ordine di tavolo
      */
@@ -130,7 +116,7 @@ class Game extends \Bga\GameFramework\Table
     }
 
     /**
-     * Restituisce gli id dei giocatori che appartengono a una squadra.
+     * Restituisce gli id dei giocatori che appartengono a una squadra
      *
      * @return int[]
      */
@@ -140,7 +126,7 @@ class Game extends \Bga\GameFramework\Table
     }
 
     /**
-     * Restituisce un nome leggibile per la squadra: i nomi dei suoi giocatori uniti da " & ".
+     * Restituisce i nomi dei suoi giocatori della stessa squadra uniti da " & "
      */
     public function teamName(int $teamId): string
     {
@@ -149,8 +135,7 @@ class Game extends \Bga\GameFramework\Table
     }
 
     /**
-     * Restituisce il punteggio totale attuale di una squadra. Tutti i membri hanno lo stesso punteggio,
-     * quindi si legge quello del primo.
+     * Restituisce il punteggio totale attuale di una squadra
      */
     public function teamScore(int $teamId): int
     {
@@ -160,7 +145,6 @@ class Game extends \Bga\GameFramework\Table
 
     /**
      * Restituisce tutti i giocatori in ordine di turno, a partire da chi apre la mano
-     * (il giocatore dopo il mazziere).
      *
      * @return int[] id dei giocatori
      */
@@ -176,7 +160,7 @@ class Game extends \Bga\GameFramework\Table
     }
 
     /**
-     * Restituisce l'id del mazziere attuale.
+     * Restituisce l'id del mazziere attuale
      */
     public function getDealerId(): int
     {
@@ -184,8 +168,7 @@ class Game extends \Bga\GameFramework\Table
     }
 
     /**
-     * Restituisce l'id del giocatore che apre ogni mano della smazzata: quello dopo il mazziere
-     * nell'ordine di tavolo di BGA.
+     * Restituisce l'id del giocatore che apre ogni mano della smazzata
      */
     public function getFirstPlayerId(): int
     {
@@ -193,8 +176,7 @@ class Game extends \Bga\GameFramework\Table
     }
 
     /**
-     * Numero di carte date a ogni giocatore in una volta: 3 con 2 giocatori (più giri di distribuzione),
-     * 10 con 4 giocatori (tutto il mazzo è distribuito in una volta sola).
+     * Numero di carte date a ogni giocatore in una volta
      */
     public function handSize(): int
     {
@@ -202,7 +184,7 @@ class Game extends \Bga\GameFramework\Table
     }
 
     /**
-     * Restituisce i punti che una squadra deve raggiungere per vincere la partita.
+     * Restituisce i punti che una squadra deve raggiungere per vincere la partita
      */
     public function targetScore(): int
     {
@@ -213,9 +195,7 @@ class Game extends \Bga\GameFramework\Table
     //// Carte
 
     /**
-     * Restituisce la posizione di una carta nel formato di ItemManager: una posizione precisa se si indica anche
-     * l'argomento (mano di un giocatore, pila di una squadra), altrimenti un filtro che comprende ogni argomento
-     * (per esempio "tutte le mani").
+     * Restituisce la posizione di una carta nel formato di ItemManager
      */
     public function locationOf(string $location, ?int $locationArg = null): Location
     {
@@ -223,7 +203,7 @@ class Game extends \Bga\GameFramework\Table
     }
 
     /**
-     * Converte una carta (oggetto Card) nel formato usato dal client e da ScopaRules (id, seme, valore).
+     * Converte una carta nel formato usato dal client e da ScopaRules (id, seme, valore).
      *
      * @return array{id:int, suit:int, rank:int}
      */
@@ -237,8 +217,7 @@ class Game extends \Bga\GameFramework\Table
     }
 
     /**
-     * Converte un elenco di carte (array o Collection restituita da ItemManager) in carte per il client,
-     * ordinate per id (così l'ordine è sempre prevedibile).
+     * Converte un elenco di carte nel formato usato dal client e da ScopaRules (id, seme, valore)
      *
      * @param iterable<Card> $cards
      * @return array[]
@@ -254,10 +233,7 @@ class Game extends \Bga\GameFramework\Table
     }
 
     /**
-     * Restituisce il nome di una carta da usare come argomento di una notifica, per esempio "King of Coins".
-     * È un argomento "annidato" (testo con segnaposto + argomenti) perché i nomi vanno tradotti dal client nella
-     * lingua di ogni giocatore: le chiavi in `i18n` dicono a BGA quali argomenti tradurre. Gli stessi testi
-     * (Ace, Coins, ...) sono usati dal client per i tooltip, quindi hanno una sola traduzione.
+     * Restituisce il nome di una carta da usare come argomento di una notifica
      *
      * @return array{log:string, args:array}
      */
@@ -284,9 +260,7 @@ class Game extends \Bga\GameFramework\Table
     }
 
     /**
-     * Restituisce l'elenco di più carte come argomento di notifica annidato, per esempio
-     * "Two of Cups, Five of Swords": ogni carta è un argomento (`card_0`, `card_1`, ...) con il proprio nome
-     * tradotto, così l'elenco resta traducibile anche se contiene un numero variabile di carte.
+     * Restituisce l'elenco di più carte come argomento di notifica annidato
      *
      * @param array[] $cardViews carte nel formato del client
      * @return array{log:string, args:array}
@@ -304,7 +278,7 @@ class Game extends \Bga\GameFramework\Table
     }
 
     /**
-     * Conta le carte in una posizione e restituisce un intero (con ItemManager il conteggio è già un intero).
+     * Conta le carte in una posizione e restituisce un intero
      *
      * @param string   $location     posizione delle carte (mazzo, mano, tavolo, prese)
      * @param int|null $locationArg  argomento della posizione (id giocatore o id squadra), null = tutti
@@ -315,7 +289,7 @@ class Game extends \Bga\GameFramework\Table
     }
 
     /**
-     * Restituisce le carte attualmente sul tavolo.
+     * Restituisce le carte attualmente sul tavolo
      *
      * @return array[]
      */
@@ -325,8 +299,7 @@ class Game extends \Bga\GameFramework\Table
     }
 
     /**
-     * Per ogni carta nella mano del giocatore elenca le prese possibili con quella carta.
-     * Un elenco vuoto per una carta significa che non può prendere nulla (può solo essere posata sul tavolo).
+     * Per ogni carta nella mano del giocatore elenca le prese possibili con quella carta
      *
      * @return array<int, int[][]> id carta in mano => elenco di prese lecite (ognuna è un elenco di id del tavolo)
      */
@@ -341,8 +314,7 @@ class Game extends \Bga\GameFramework\Table
     }
 
     /**
-     * Vero quando la carta appena giocata è l'ultima della smazzata (mazzo e mani tutti vuoti).
-     * Una presa che svuota il tavolo in questa giocata NON è una scopa.
+     * Vero quando la carta appena giocata è l'ultima della smazzata
      */
     public function isLastPlayOfDeal(): bool
     {
@@ -351,7 +323,7 @@ class Game extends \Bga\GameFramework\Table
     }
 
     /**
-     * Restituisce quante carte ha in mano ogni giocatore (informazione pubblica).
+     * Restituisce quante carte ha in mano ogni giocatore
      *
      * @return array<int, int> id giocatore => numero di carte in mano
      */
@@ -365,7 +337,7 @@ class Game extends \Bga\GameFramework\Table
     }
 
     /**
-     * Restituisce il numero di scope fatte da ogni squadra nella smazzata corrente.
+     * Restituisce il numero di scope fatte da ogni squadra nella smazzata corrente
      *
      * @return array<int, int> id squadra => numero di scope
      */
@@ -380,7 +352,7 @@ class Game extends \Bga\GameFramework\Table
     }
 
     /**
-     * Aggiunge una scopa alla squadra per la smazzata corrente.
+     * Aggiunge una scopa alla squadra per la smazzata corrente
      */
     public function addScopa(int $teamId): void
     {
@@ -394,7 +366,7 @@ class Game extends \Bga\GameFramework\Table
 
     /**
      * Restituisce l'avanzamento della partita (0-100) mostrato ai giocatori: punti della squadra in testa
-     * più la frazione di smazzata già giocata, rispetto al punteggio obiettivo.
+     * più la frazione di smazzata già giocata, rispetto al punteggio obiettivo
      */
     public function getGameProgression()
     {
@@ -413,9 +385,7 @@ class Game extends \Bga\GameFramework\Table
     }
 
     /**
-     * Punto di aggancio per le migrazioni del database. Il framework BGA lo richiede (è chiamato quando si
-     * carica una partita creata con una versione precedente del gioco): per ora non c'è nulla da migrare
-     * perché il gioco non è ancora pubblicato; quando cambierà `dbmodel.sql` le modifiche andranno qui.
+     * Punto di aggancio per le migrazioni del database. Il framework BGA lo richiede
      */
     public function upgradeTableDb($from_version)
     {
@@ -423,7 +393,7 @@ class Game extends \Bga\GameFramework\Table
 
     /**
      * Raccoglie tutto ciò che serve al client per disegnare il gioco, limitato a ciò che il giocatore
-     * indicato può vedere (solo la propria mano). Viene chiamata al caricamento e all'aggiornamento della pagina.
+     * indicato può vedere (solo la propria mano)
      */
     protected function getAllDatas(int $currentPlayerId): array
     {
@@ -461,14 +431,14 @@ class Game extends \Bga\GameFramework\Table
 
     /**
      * Prepara una nuova partita: crea i giocatori, decide il punteggio obiettivo e il primo mazziere, crea le
-     * 40 carte e inizializza le statistiche. La prima smazzata è avviata dallo stato NewDeal.
+     * 40 carte e inizializza le statistiche. La prima smazzata è avviata dallo stato NewDeal
      *
      * @param array $players  giocatori iscritti al tavolo, indicizzati per id giocatore
      * @param array $options  opzioni scelte alla creazione del tavolo
      */
     protected function setupNewGame($players, $options = [])
     {
-        // Crea la tabella delle carte (`card`): va fatto per primo, prima di creare qualsiasi carta.
+        // Crea la tabella delle carte (`card`)
         $this->cards->initDb();
 
         $gameinfos = $this->getGameinfos();
@@ -513,7 +483,7 @@ class Game extends \Bga\GameFramework\Table
         }
         $this->cards->createItems($cardsToCreate);
 
-        // Inizializza le statistiche di partita e giocatore (tutte a 0)
+        // Inizializza le statistiche di partita e giocatore tutte a 0
         $this->bga->tableStats->init('deals_played', 0);
         $this->bga->playerStats->init([
             'scope_count', 'settebello_count', 'primiera_count', 'denari_count',
@@ -524,9 +494,7 @@ class Game extends \Bga\GameFramework\Table
     }
 
     /**
-     * Funzione di debug (pulsante nel pannello debug di Studio, il prefisso `debug_` la rende visibile lì):
-     * salta a uno stato dato il suo id, per esempio 95 = EndDeal. Serve a provare la fine smazzata senza giocare
-     * tutte le carte; in produzione BGA non la espone ai giocatori.
+     * Funzione di debug 
      */
     public function debug_goToState(int $state = 3)
     {

@@ -71,7 +71,7 @@ class ScopaRules
     /**
      * Funzione di supporto ricorsiva di legalCaptures: trova ogni gruppo non vuoto di carte la cui somma
      * è uguale al valore cercato. Ogni gruppo è costruito scegliendo le carte in ordine di indice crescente,
-     * così nessun gruppo compare due volte.
+     * così nessun gruppo compare due volte
      *
      * @param array[] $candidateCards   le carte del tavolo, ordinate per id
      * @param int     $startIndex       primo indice di $candidateCards ancora aggiungibile al gruppo
@@ -103,7 +103,7 @@ class ScopaRules
 
     /**
      * Dice se il gruppo di carte del tavolo scelto è una delle prese lecite per il valore giocato.
-     * L'ordine degli id non conta.
+     * L'ordine degli id non conta
      *
      * @param int     $playedRank    il valore della carta che si sta giocando
      * @param array[] $tableCards    le carte attualmente sul tavolo
@@ -123,7 +123,7 @@ class ScopaRules
 
     /**
      * Con due giocatori si scoprono 4 carte sul tavolo; se tre o più sono Re non sarebbe mai possibile
-     * fare scopa, quindi la distribuzione va rifatta.
+     * fare scopa, quindi la distribuzione va rifatta
      *
      * @param array[] $initialTableCards le 4 carte scoperte sul tavolo
      */

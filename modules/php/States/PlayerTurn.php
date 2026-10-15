@@ -13,13 +13,13 @@ use Bga\Games\ProjectBiagio\Game;
 use Bga\Games\ProjectBiagio\Rules\ScopaRules;
 
 /**
- * Stato di gioco 10 - il giocatore attivo gioca una carta dalla sua mano (non si può passare).
- * Se esiste una presa il giocatore deve prendere; altrimenti la carta viene posata sul tavolo.
+ * Stato di gioco 10 - turno del giocatore attivo
+ * Se esiste una presa il giocatore deve prendere; altrimenti la carta viene posata sul tavolo
  */
 class PlayerTurn extends GameState
 {
     /**
-     * Dichiara lo stato: id 10, giocato dal singolo giocatore attivo.
+     * Dichiara lo stato: id 10
      */
     function __construct(
         protected Game $game,
@@ -53,7 +53,7 @@ class PlayerTurn extends GameState
      * Un elenco di prese vuoto significa "posa la carta sul tavolo" ed è accettato solo se non esiste nessuna presa.
      * La mossa è validata sul server con ScopaRules; poi le carte si spostano (nella pila delle prese della
      * squadra oppure sul tavolo), si conta una scopa se il tavolo è stato svuotato (tranne nell'ultima giocata
-     * della smazzata), si aggiornano le statistiche e si avvisano tutti.
+     * della smazzata), si aggiornano le statistiche e si avvisano tutti
      *
      * @param int   $card_id        id della carta in mano che si gioca
      * @param int   $activePlayerId compilato automaticamente dal framework con il giocatore che agisce
@@ -65,14 +65,13 @@ class PlayerTurn extends GameState
     #[PossibleAction]
     public function actPlay(int $card_id, int $activePlayerId, #[IntArrayParam] array $capture_ids = [])
     {
-        // Scorciatoie: il gioco e il gestore delle carte (ItemManager), usati più volte nel resto del metodo
         $game = $this->game;
         $cards = $game->cards;
 
-        // Recupera dal database la carta che il client dice di voler giocare (null se l'id non esiste)
+        // Recupera dal database la carta che il client dice di voler giocare
         $playedCardItem = $cards->getItemById($card_id);
 
-        // Validazione 1: la carta deve esistere, essere in una mano e appartenere al giocatore attivo.
+        // Validazione 1: la carta deve esistere, essere in una mano e appartenere al giocatore attivo
         $isInPlayersHand = $playedCardItem !== null
             && $playedCardItem->location === Game::LOCATION_HAND
             && (int) $playedCardItem->locationArg === $activePlayerId;
@@ -81,7 +80,7 @@ class PlayerTurn extends GameState
         }
 
         // Prepara i dati per validare la presa: la carta giocata e le carte sul tavolo in formato per il client,
-        // poi gli id delle carte da prendere ripuliti (numeri interi, senza doppioni, in ordine crescente)
+        // poi gli id delle carte da prendere ripuliti
         $playedCard = $game->cardView($playedCardItem);
         $tableCards = $game->tableCards();
         $capturedCardIds = array_values(array_unique(array_map('intval', $capture_ids)));
@@ -99,7 +98,7 @@ class PlayerTurn extends GameState
             throw new UserException(clienttranslate('This capture is not allowed'));
         }
 
-        // Da qui la mossa è valida. Trova la squadra del giocatore (con 2 giocatori ogni squadra è un giocatore)
+        // Da qui la mossa è valida. Trova la squadra del giocatore
         $teamId = $game->teamOf($activePlayerId);
 
         // Dati della notifica comuni a entrambi i casi (posa e presa): chi gioca, quale carta e per quale squadra

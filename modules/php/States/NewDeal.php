@@ -32,9 +32,9 @@ class NewDeal extends GameState
     }
 
     /**
-     * Viene eseguita all'inizio della smazzata: aggiorna il numero di smazzata e il mazziere (cambia dalla
-     * seconda smazzata), raccoglie e mescola tutte le carte, scopre le carte iniziali sul tavolo (solo con
-     * 2 giocatori, rifacendo la distribuzione se ci sono 3 o più Re) e avvisa i client della nuova smazzata.
+     * Viene eseguita all'inizio della smazzata: aggiorna il numero di smazzata e il mazziere,
+     * raccoglie e mescola tutte le carte, scopre le carte iniziali sul tavolo (solo con
+     * 2 giocatori, rifacendo la distribuzione se ci sono 3 o più Re) e avvisa i client della nuova smazzata
      *
      * @return string lo stato successivo: DealHands
      */
