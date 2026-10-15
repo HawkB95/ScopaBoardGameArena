@@ -1,16 +1,10 @@
-/*
- * Disegno delle carte. Ogni carta è un elemento vuoto: la faccia viene dallo sprite delle carte napoletane
- * (img/cards.jpg), scelta dal CSS con le classi di seme e valore (vedi src/scss/Game.scss).
- * Seme: 1 denari, 2 coppe, 3 bastoni, 4 spade.
- */
-
 /** Id dell'elemento HTML di una carta. */
 export function cardElementId(cardId: number): string {
     return `scopa-card-${cardId}`;
 }
 
 /**
- * Restituisce il nome completo della carta per tooltip e accessibilità, per esempio "Re di denari".
+ * Restituisce il nome completo della carta per tooltip e accessibilità
  */
 export function cardName(card: ScopaCard): string {
     const rankNames: Record<number, string> = {
@@ -24,8 +18,7 @@ export function cardName(card: ScopaCard): string {
 }
 
 /**
- * Crea l'elemento HTML di una carta scoperta. Non ha contenuto: il disegno è lo sprite scelto dalle classi
- * di seme e valore; nome e dati servono al tooltip, all'accessibilità e ai clic/riordino (data-*).
+ * Crea l'elemento HTML di una carta scoperta
  */
 export function createCardElement(card: ScopaCard): HTMLElement {
     const cardElement = document.createElement('div');
@@ -40,7 +33,7 @@ export function createCardElement(card: ScopaCard): HTMLElement {
 }
 
 /**
- * Crea l'elemento HTML di una carta coperta (dorso), usato per le mani degli avversari e per il mazzo.
+ * Crea l'elemento HTML di una carta coperta
  */
 export function createCardBackElement(): HTMLElement {
     const backElement = document.createElement('div');
@@ -49,15 +42,14 @@ export function createCardBackElement(): HTMLElement {
 }
 
 /**
- * Ordina le carte per seme e poi per valore, così la mano è facile da leggere.
+ * Ordina le carte per seme e poi per valore
  */
 export function sortCardsForHand(cards: ScopaCard[]): ScopaCard[] {
     return [...cards].sort((first, second) => first.suit - second.suit || first.rank - second.rank);
 }
 
 /**
- * Riordina per seme e valore gli elementi HTML delle carte già presenti nella mano (stesso ordine di
- * sortCardsForHand, ma lavora sugli elementi perché la mano è già disegnata e va solo riordinata, senza ricrearla).
+ * Riordina per seme e valore gli elementi HTML delle carte già presenti nella mano
  */
 export function sortCardElementsInHand(handElement: HTMLElement): void {
     const sortedElements = [...handElement.children]

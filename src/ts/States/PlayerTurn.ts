@@ -8,7 +8,7 @@ const CANCEL_BUTTON_ID = 'scopa-cancel-button';
 
 /**
  * Stato PlayerTurn: il giocatore attivo sceglie una carta dalla mano e, se può prendere, quali carte del tavolo
- * prendere. Le prese lecite arrivano dal server (nessuna regola è calcolata qui): il client si limita a
+ * prendere. Le prese lecite arrivano dal server, il client si limita a
  * guidare la selezione e a inviare l'azione `actPlay`.
  *
  * Funzionamento:
@@ -18,13 +18,13 @@ const CANCEL_BUTTON_ID = 'scopa-cancel-button';
  *  - se nessuna presa è possibile, il pulsante diventa "Posa la carta sul tavolo".
  */
 export class PlayerTurn {
-    /** Prese lecite per ogni carta in mano, ricevute dal server. */
+    /** Prese lecite per ogni carta in mano, ricevute dal server */
     private capturesByCard: CapturesByCard = {};
-    /** Id della carta in mano selezionata, oppure null. */
+    /** Id della carta in mano selezionata, oppure null */
     private selectedHandCardId: number | null = null;
-    /** Id delle carte del tavolo selezionate per la presa. */
+    /** Id delle carte del tavolo selezionate per la presa */
     private selectedCaptureIds: number[] = [];
-    /** Vero se il giocatore corrente è quello attivo e può agire. */
+    /** Vero se il giocatore corrente è quello attivo e può agire */
     private isActive = false;
 
     constructor(private game: Game, private bga: Bga<ProjectBiagioPlayer, ProjectBiagioGamedatas>) {
@@ -32,14 +32,12 @@ export class PlayerTurn {
 
     /**
      * Chiamata dal framework all'ingresso nello stato. Se il giocatore è attivo prepara la selezione e i pulsanti
-     * della barra di stato; altrimenti mostra solo il titolo di attesa.
+     * della barra di stato; altrimenti mostra solo il titolo di attesa
      */
     onEnteringState(args: PlayerTurnArgs, isCurrentPlayerActive: boolean) {
         this.isActive = isCurrentPlayerActive;
         this.selectedHandCardId = null;
         this.selectedCaptureIds = [];
-        // Le prese lecite sono dati privati del giocatore attivo (la mano è nascosta agli altri): il framework le
-        // consegna in `_private`; `captures` copre il caso in cui gli argomenti arrivino già "appiattiti".
         this.capturesByCard = args?.captures ?? args?._private?.captures ?? {};
 
         if (!isCurrentPlayerActive) {
@@ -53,7 +51,7 @@ export class PlayerTurn {
     }
 
     /**
-     * Chiamata dal framework all'uscita dallo stato: azzera la selezione e toglie le evidenziazioni dalle carte.
+     * Chiamata dal framework all'uscita dallo stato: azzera la selezione e toglie le evidenziazioni dalle carte
      */
     onLeavingState() {
         this.isActive = false;
@@ -64,7 +62,7 @@ export class PlayerTurn {
 
     /**
      * Gestisce il clic su una carta della propria mano: la seleziona, oppure la deseleziona se era già selezionata.
-     * Se per quella carta esiste una sola presa, la preseleziona.
+     * Se per quella carta esiste una sola presa, la preseleziona
      */
     onHandCardClick(cardId: number) {
         if (!this.isActive || !this.capturesByCard[cardId]) {
@@ -83,7 +81,7 @@ export class PlayerTurn {
 
     /**
      * Gestisce il clic su una carta del tavolo: la aggiunge o la toglie dalla presa in costruzione. Se dopo il clic
-     * rimane una sola presa compatibile con la selezione, la completa automaticamente.
+     * rimane una sola presa compatibile con la selezione, la completa automaticamente
      */
     onTableCardClick(cardId: number) {
         if (!this.isActive || this.selectedHandCardId === null) {
@@ -106,7 +104,7 @@ export class PlayerTurn {
     }
 
     /**
-     * Prese lecite della carta in mano selezionata che contengono tutte le carte del tavolo già scelte.
+     * Prese lecite della carta in mano selezionata che contengono tutte le carte del tavolo già scelte
      */
     private getCompatibleCaptures(): number[][] {
         if (this.selectedHandCardId === null) {
@@ -117,7 +115,7 @@ export class PlayerTurn {
     }
 
     /**
-     * Id delle carte del tavolo che il giocatore può ancora cliccare per completare una presa lecita.
+     * Id delle carte del tavolo che il giocatore può ancora cliccare per completare una presa lecita
      */
     private getSelectableTableCardIds(): number[] {
         const idsOfCompatibleCaptures = this.getCompatibleCaptures().flat();
@@ -125,7 +123,7 @@ export class PlayerTurn {
     }
 
     /**
-     * Vero se le carte selezionate coincidono esattamente con una presa lecita.
+     * Vero se le carte selezionate coincidono esattamente con una presa lecita
      */
     private isSelectionACompleteCapture(): boolean {
         if (this.selectedHandCardId === null || this.selectedCaptureIds.length === 0) {
@@ -141,7 +139,7 @@ export class PlayerTurn {
 
     /**
      * Aggiorna tutto ciò che il giocatore vede della selezione: evidenziazioni delle carte, titolo della barra di
-     * stato e stato dei pulsanti "Prendi / Posa la carta" e "Annulla".
+     * stato e stato dei pulsanti "Prendi / Posa la carta" e "Annulla"
      */
     private refreshSelectionDisplay() {
         this.clearCardHighlights();
@@ -163,7 +161,7 @@ export class PlayerTurn {
 
         const availableCaptures = this.capturesByCard[this.selectedHandCardId];
         if (availableCaptures.length === 0) {
-            // Nessuna presa possibile: la carta può solo essere posata sul tavolo.
+            // Nessuna presa possibile: la carta può solo essere posata sul tavolo
             this.bga.statusBar.setTitle(_('${you} cannot capture: put the card on the table'));
             this.setButtonState(confirmButton, true, _('Put the card on the table'));
             return;
@@ -176,8 +174,7 @@ export class PlayerTurn {
     }
 
     /**
-     * Invia l'azione al server con la carta giocata e le carte da prendere (elenco vuoto = posa sul tavolo).
-     * Va chiamata solo da un clic del giocatore.
+     * Invia l'azione al server con la carta giocata e le carte da prendere
      */
     private onConfirmClick() {
         if (this.selectedHandCardId === null) {
@@ -190,7 +187,7 @@ export class PlayerTurn {
             return;
         }
         // Con una lista di prese vuota il parametro non viene inviato (BGA scarta gli array vuoti): il server
-        // lo considera allora una posa sul tavolo.
+        // lo considera allora una posa sul tavolo
         const actionArguments: { card_id: number; capture_ids?: number[] } = { card_id: this.selectedHandCardId };
         if (!noCapturePossible) {
             actionArguments.capture_ids = this.selectedCaptureIds;
@@ -199,7 +196,7 @@ export class PlayerTurn {
     }
 
     /**
-     * Annulla la selezione corrente (carta in mano e carte del tavolo) senza contattare il server.
+     * Annulla la selezione corrente (carta in mano e carte del tavolo) senza contattare il server
      */
     private onCancelClick() {
         this.selectedHandCardId = null;
@@ -208,7 +205,7 @@ export class PlayerTurn {
     }
 
     /**
-     * Toglie dalle carte tutte le classi di evidenziazione usate dalla selezione.
+     * Toglie dalle carte tutte le classi di evidenziazione usate dalla selezione
      */
     private clearCardHighlights() {
         document.querySelectorAll('.scopa-card--playable, .scopa-card--selected, .scopa-card--selectable').forEach(cardElement => {
@@ -217,27 +214,27 @@ export class PlayerTurn {
     }
 
     /**
-     * Aggiunge una classe CSS alla carta con l'id indicato (se esiste).
+     * Aggiunge una classe CSS alla carta con l'id indicato (se esiste)
      */
     private addClass(cardId: number, className: string) {
         document.getElementById(cardElementId(cardId))?.classList.add(className);
     }
 
     /**
-     * Abilita o disabilita un pulsante della barra di stato e ne cambia il testo.
+     * Abilita o disabilita un pulsante della barra di stato e ne cambia il testo
      */
     private setButtonState(button: HTMLElement | null, isEnabled: boolean, label: string) {
         if (!button) {
             return;
         }
-        // Non si usa la classe 'disabled' di BGA: il pulsante resta cliccabile e il controllo è nella callback.
+        // Non si usa la classe 'disabled' di BGA: il pulsante resta cliccabile e il controllo è nella callback
         button.classList.remove('disabled');
         button.classList.toggle('scopa-button-inactive', !isEnabled);
         button.textContent = label;
     }
 
     /**
-     * Mostra o nasconde un pulsante della barra di stato.
+     * Mostra o nasconde un pulsante della barra di stato
      */
     private setButtonVisible(button: HTMLElement | null, isVisible: boolean) {
         if (button) {

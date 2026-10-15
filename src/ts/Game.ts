@@ -10,7 +10,7 @@ const PAUSE_BEFORE_CAPTURE_MS = 450;
 
 /**
  * Classe principale del client: costruisce l'interfaccia (tavolo, mano, mazzo, pile delle prese, avversari),
- * gestisce i clic sulle carte e reagisce alle notifiche del server animando le carte.
+ * gestisce i clic sulle carte e reagisce alle notifiche del server animando le carte
  */
 export class Game {
     public bga: Bga<ProjectBiagioPlayer, ProjectBiagioGamedatas>;
@@ -18,19 +18,19 @@ export class Game {
 
     private playerTurn: PlayerTurn;
 
-    /** Id del giocatore che sta guardando (può non essere tra i giocatori se è uno spettatore). */
+    /** Id del giocatore che sta guardando (può non essere tra i giocatori se è uno spettatore) */
     private currentPlayerId: number;
-    /** Carte in mano a ogni giocatore, aggiornate dalle notifiche. */
+    /** Carte in mano a ogni giocatore, aggiornate dalle notifiche */
     private handCounts: Record<number, number> = {};
-    /** Carte prese da ogni squadra, aggiornate dalle notifiche. */
+    /** Carte prese da ogni squadra, aggiornate dalle notifiche */
     private capturedCounts: Record<number, number> = {};
-    /** Scope fatte da ogni squadra nella smazzata corrente, aggiornate dalle notifiche. */
+    /** Scope fatte da ogni squadra nella smazzata corrente, aggiornate dalle notifiche */
     private scopeCounts: Record<number, number> = {};
 
     constructor(bga: Bga<ProjectBiagioPlayer, ProjectBiagioGamedatas>) {
         this.bga = bga;
 
-        // Registra la classe che gestisce lo stato PlayerTurn (stesso nome della classe PHP).
+        // Registra la classe che gestisce lo stato PlayerTurn
         this.playerTurn = new PlayerTurn(this, bga);
         this.bga.states.register('PlayerTurn', this.playerTurn);
     }
@@ -40,7 +40,7 @@ export class Game {
 
     /**
      * Costruisce l'interfaccia a partire dai dati inviati dal server. Viene chiamata al caricamento e a ogni
-     * aggiornamento della pagina, quindi deve disegnare lo stato completo del gioco.
+     * aggiornamento della pagina, quindi deve disegnare lo stato completo del gioco
      */
     setup(gamedatas: ProjectBiagioGamedatas) {
         this.gamedatas = gamedatas;
@@ -63,8 +63,7 @@ export class Game {
     }
 
     /**
-     * Converte in numeri tutti i valori di un oggetto: i dati inviati dal server possono arrivare come testo
-     * (per esempio "2"), e sommandoli si otterrebbe una concatenazione ("2" + 1 = "21") invece di un numero.
+     * Converte in numeri tutti i valori di un oggetto
      */
     private toNumberRecord(values: Record<number, number | string>): Record<number, number> {
         const numericValues: Record<number, number> = {};
@@ -73,8 +72,7 @@ export class Game {
     }
 
     /**
-     * Ridisegna le carte coperte di tutti gli avversari (il giocatore corrente non ha un dorso da mostrare:
-     * le sue carte sono nella mano scoperta, e `scopa-opponent-hand-<id>` per lui non esiste).
+     * Ridisegna le carte coperte di tutti gli avversari
      */
     private renderAllOpponentHands() {
         Object.keys(this.handCounts).forEach(playerId => this.renderOpponentHand(Number(playerId)));
@@ -88,8 +86,7 @@ export class Game {
     }
 
     /**
-     * Crea la struttura HTML del gioco: avversari in alto, al centro mazzo + tavolo + pile delle prese,
-     * in basso la propria mano.
+     * Crea la struttura HTML del gioco
      */
     private buildBoard() {
         const players = this.gamedatas.players;
@@ -135,9 +132,7 @@ export class Game {
     }
 
     /**
-     * Restituisce gli altri giocatori nell'ordine in cui vengono mostrati in alto, da sinistra a destra:
-     * partendo dal giocatore che gioca dopo di me. Con 4 giocatori l'ordine è quindi: il mio successivo,
-     * il mio compagno (di fronte a me) e il giocatore che gioca prima di me. Per uno spettatore vale l'ordine dei posti.
+     * Restituisce gli altri giocatori nell'ordine in cui vengono mostrati in alto, da sinistra a destra
      */
     private otherPlayerIdsInDisplayOrder(): number[] {
         const playerOrder = this.gamedatas.playerOrder.map(Number);
@@ -149,8 +144,7 @@ export class Game {
     }
 
     /**
-     * Etichetta del ruolo di un giocatore rispetto a me nelle partite a squadre: "Partner" per il compagno,
-     * "Opponent" per gli avversari. Vuota con 2 giocatori, per me e per gli spettatori.
+     * Etichetta del ruolo di un giocatore
      */
     private roleBadgeHtml(playerId: number): string {
         const myPlayer = this.gamedatas.players[this.currentPlayerId];
@@ -164,8 +158,8 @@ export class Game {
     }
 
     /**
-     * HTML dell'intestazione di un giocatore: nome (nel suo colore) e il segnalino "Mazziere", nascosto
-     * finché non è il suo turno di dare.
+     * HTML dell'intestazione di un giocatore: nome (nel suo colore) e il segnalino "Dealer", nascosto
+     * finché non è il suo turno
      */
     private seatHtml(playerId: number): string {
         const player = this.gamedatas.players[playerId];
@@ -178,7 +172,7 @@ export class Game {
     }
 
     /**
-     * Collega i clic sulle carte della mano e del tavolo allo stato PlayerTurn (un solo ascoltatore per contenitore).
+     * Collega i clic sulle carte della mano e del tavolo allo stato PlayerTurn
      */
     private connectCardClicks() {
         document.getElementById('scopa-hand')?.addEventListener('click', event => {
@@ -196,7 +190,7 @@ export class Game {
     }
 
     /**
-     * Ricava l'id della carta su cui si è cliccato (o null se il clic non era su una carta).
+     * Ricava l'id della carta su cui si è cliccato
      */
     private cardIdFromEvent(event: Event): number | null {
         const cardElement = (event.target as HTMLElement).closest('.scopa-card') as HTMLElement | null;
@@ -207,7 +201,7 @@ export class Game {
     //// Disegno delle varie parti
 
     /**
-     * Mostra il segnalino "Mazziere" solo accanto al mazziere indicato.
+     * Mostra il segnalino "Dealer" solo accanto al mazziere indicato
      */
     private renderDealer(dealerId: number) {
         document.querySelectorAll('.scopa-seat').forEach(seat => seat.classList.remove('scopa-seat--dealer'));
@@ -215,7 +209,7 @@ export class Game {
     }
 
     /**
-     * Aggiorna il numero di carte rimaste nel mazzo e nasconde il mazzo quando è vuoto.
+     * Aggiorna il numero di carte rimaste nel mazzo e nasconde il mazzo quando è vuoto
      */
     private renderDeckCount(deckCount: number) {
         const deckCountElement = document.getElementById('scopa-deck-count');
@@ -226,7 +220,7 @@ export class Game {
     }
 
     /**
-     * Mostra il punteggio da raggiungere per vincere.
+     * Mostra il punteggio da raggiungere per vincere
      */
     private renderTargetScore(target: number) {
         const targetElement = document.getElementById('scopa-target');
@@ -236,7 +230,7 @@ export class Game {
     }
 
     /**
-     * Svuota il tavolo e vi disegna le carte indicate (senza animazione).
+     * Svuota il tavolo e vi disegna le carte indicate
      */
     private renderTable(cards: ScopaCard[]) {
         const tableElement = document.getElementById('scopa-table');
@@ -248,7 +242,7 @@ export class Game {
     }
 
     /**
-     * Svuota la propria mano e vi disegna le carte indicate, ordinate per seme e valore (senza animazione).
+     * Svuota la propria mano e vi disegna le carte indicate, ordinate per seme e valore
      */
     private renderHand(cards: ScopaCard[]) {
         const handElement = document.getElementById('scopa-hand');
@@ -260,7 +254,7 @@ export class Game {
     }
 
     /**
-     * Ridisegna le carte coperte della mano di un avversario in base al numero di carte che ha in mano.
+     * Ridisegna le carte coperte della mano di un avversario in base al numero di carte che ha in mano
      */
     private renderOpponentHand(playerId: number) {
         const opponentHandElement = document.getElementById(`scopa-opponent-hand-${playerId}`);
@@ -274,7 +268,7 @@ export class Game {
     }
 
     /**
-     * Aggiorna la pila delle prese di una squadra: numero di carte, numero di scope e dorso visibile se non è vuota.
+     * Aggiorna la pila delle prese di una squadra: numero di carte, numero di scope e dorso visibile se non è vuota
      */
     private renderPile(teamId: number) {
         const capturedCount = this.capturedCounts[teamId] ?? 0;
@@ -293,16 +287,14 @@ export class Game {
     //// Animazioni
 
     /**
-     * Vero se le animazioni sono attive (il giocatore può disattivarle nelle impostazioni di BGA).
+     * Vero se le animazioni sono attive
      */
     private animationsActive(): boolean {
         return this.bga.gameui.bgaAnimationsActive();
     }
 
     /**
-     * Sposta un elemento in un nuovo contenitore con un'animazione di scorrimento (tecnica FLIP: si misura la
-     * posizione prima e dopo il cambio di contenitore e si anima la differenza). Se richiesto, alla fine
-     * l'elemento viene eliminato (usato per le carte che finiscono nelle pile delle prese).
+     * Sposta una carta e in caso di presa lo rimuove alla fine
      */
     private async moveElement(element: HTMLElement, newParent: HTMLElement, removeAtEnd = false) {
         const startRect = element.getBoundingClientRect();
@@ -316,7 +308,7 @@ export class Game {
     }
 
     /**
-     * Anima un elemento dalla posizione indicata (rettangolo di partenza) fino a dove si trova ora.
+     * Anima un elemento dalla posizione indicata a quella attuale
      */
     private async slideFrom(element: HTMLElement, startRect: DOMRect) {
         const endRect = element.getBoundingClientRect();
@@ -328,7 +320,7 @@ export class Game {
             { duration: CARD_MOVE_DURATION_MS, easing: 'ease-in-out' },
         );
         // Il limite di tempo è necessario perché BGA esegue le notifiche una dopo l'altra: se il browser non
-        // portasse a termine l'animazione (per esempio in una scheda in secondo piano) la coda resterebbe bloccata.
+        // portasse a termine l'animazione (per esempio in una scheda in secondo piano) la coda resterebbe bloccata
         await Promise.race([
             animation.finished.catch(() => undefined),
             new Promise(resolve => setTimeout(resolve, CARD_MOVE_DURATION_MS + 300)),
@@ -337,7 +329,7 @@ export class Game {
     }
 
     /**
-     * Aggiunge una carta a un contenitore facendola partire dal mazzo (animazione di distribuzione).
+     * Aggiunge una carta a un contenitore facendola partire dal mazzo (animazione di distribuzione)
      */
     private async dealCardFromDeck(cardElement: HTMLElement, destination: HTMLElement) {
         const deckRect = (document.getElementById('scopa-deck') as HTMLElement).getBoundingClientRect();
@@ -348,7 +340,7 @@ export class Game {
     }
 
     /**
-     * Pausa che rispetta l'impostazione delle animazioni (nessuna attesa se sono disattivate).
+     * Pausa che rispetta l'impostazione delle animazioni
      */
     private async pause(milliseconds: number) {
         if (this.animationsActive()) {
@@ -357,10 +349,10 @@ export class Game {
     }
 
     ///////////////////////////////////////////////////
-    //// Notifiche dal server (il nome è 'notif_' + nome della notifica PHP)
+    //// Notifiche dal server
 
     /**
-     * Nuova smazzata: ripulisce tavolo, mano e pile, aggiorna il mazziere e distribuisce le carte scoperte sul tavolo.
+     * Nuova smazzata: ripulisce tavolo, mano e pile, aggiorna il mazziere e distribuisce le carte scoperte sul tavolo
      */
     async notif_newDeal(args: { dealer: number; table: ScopaCard[]; deckCount: number }) {
         document.getElementById('scopa-hand')?.replaceChildren();
@@ -384,7 +376,7 @@ export class Game {
     }
 
     /**
-     * Carte ricevute dal giocatore corrente (notifica privata): le aggiunge alla mano facendole arrivare dal mazzo.
+     * Carte ricevute dal giocatore corrente (notifica privata): le aggiunge alla mano facendole arrivare dal mazzo
      */
     async notif_dealHand(args: { cards: ScopaCard[] }) {
         const handElement = document.getElementById('scopa-hand');
@@ -394,12 +386,12 @@ export class Game {
         for (const card of args.cards) {
             await this.dealCardFromDeck(createCardElement(card), handElement);
         }
-        // Le carte sono arrivate una alla volta: a fine distribuzione si riordina l'intera mano.
+        // Le carte sono arrivate una alla volta: a fine distribuzione si riordina l'intera mano
         sortCardElementsInHand(handElement);
     }
 
     /**
-     * Distribuzione conclusa: aggiorna il numero di carte in mano a ogni giocatore e quelle rimaste nel mazzo.
+     * Distribuzione conclusa: aggiorna il numero di carte in mano a ogni giocatore e quelle rimaste nel mazzo
      */
     notif_handsDealt(args: { handCounts: Record<number, number>; deckCount: number }) {
         Object.keys(args.handCounts).forEach(playerId => {
@@ -413,7 +405,7 @@ export class Game {
 
     /**
      * Un giocatore ha giocato una carta: la porta sul tavolo e, se ha preso, la porta insieme alle carte prese
-     * nella pila della sua squadra; se è una scopa aggiorna il contatore e la evidenzia.
+     * nella pila della sua squadra; se è una scopa aggiorna il contatore e la evidenzia
      */
     async notif_cardPlayed(args: {
         player_id: number; team: number; card: ScopaCard; captured: ScopaCard[];
@@ -425,7 +417,7 @@ export class Game {
 
         let playedCardElement = document.getElementById(cardElementId(args.card.id));
         if (!playedCardElement) {
-            // Carta di un avversario: compare al posto di uno dei suoi dorsi e scorre sul tavolo.
+            // Carta di un avversario: compare al posto di uno dei suoi dorsi e scorre sul tavolo
             const opponentHandElement = document.getElementById(`scopa-opponent-hand-${playerId}`);
             opponentHandElement?.lastElementChild?.remove();
             playedCardElement = createCardElement(args.card);
@@ -455,7 +447,7 @@ export class Game {
     }
 
     /**
-     * Mostra per un attimo la scritta "SCOPA!" al centro del tavolo, poi la toglie.
+     * Mostra per un attimo la scritta "SCOPA!" al centro del tavolo, poi la toglie
      */
     private async showScopaBanner(tableElement: HTMLElement) {
         const bannerElement = document.createElement('div');
@@ -467,7 +459,7 @@ export class Game {
     }
 
     /**
-     * Fine smazzata: le carte rimaste sul tavolo vanno alla squadra che ha preso per ultima.
+     * Fine smazzata: le carte rimaste sul tavolo vanno alla squadra che ha preso per ultima
      */
     async notif_leftoverCaptured(args: { team: number; captured: ScopaCard[] }) {
         const teamId = Number(args.team);
@@ -482,7 +474,7 @@ export class Game {
 
     /**
      * Punteggio di una squadra a fine smazzata: aggiorna il punteggio totale nei pannelli dei suoi giocatori
-     * e mostra i punti guadagnati accanto alla pila.
+     * e mostra i punti guadagnati accanto alla pila
      */
     async notif_teamScored(args: { team: number; points: number; total: number; players: number[] }) {
         args.players.forEach(playerId => {
