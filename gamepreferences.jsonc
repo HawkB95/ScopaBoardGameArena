@@ -1,5 +1,3 @@
 {
-  // Nessuna preferenza utente: le carte usano sempre lo stile napoletano (sprite img/cards.jpg).
-  // Gli id delle preferenze, se ne servissero, vanno da 100 a 199.
-  // Vedi https://en.doc.boardgamearena.com/Options_and_preferences:_gameoptions.json,_gamepreferences.json
+
 }
