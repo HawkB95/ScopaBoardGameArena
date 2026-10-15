@@ -161,9 +161,7 @@ class PlayerTurn extends GameState
     }
 
     /**
-     * Modalità zombie (giocatore uscito o scaduto), livello 1: gioca una carta a caso con una presa lecita a caso,
-     * oppure si limita a posare la carta sul tavolo se non può prendere. Gira sul server senza un giocatore
-     * corrente, quindi chiama actPlay passando esplicitamente l'id del giocatore.
+     * Modalità zombie (giocatore uscito o scaduto)
      *
      * @param int $playerId il giocatore zombie
      * @return string lo stato successivo: NextPlayer

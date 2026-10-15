@@ -11,12 +11,12 @@ use Bga\Games\ProjectBiagio\Game;
 /**
  * Stato di gioco 4 - distribuzione delle mani.
  * Dà le carte a ogni giocatore (3 a testa con 2 giocatori, 10 a testa con 4 giocatori) e fa iniziare la mano
- * al giocatore dopo il mazziere. Quando il mazzo è finito la smazzata è conclusa.
+ * al giocatore dopo il mazziere. Quando il mazzo è finito la smazzata è conclusa
  */
 class DealHands extends GameState
 {
     /**
-     * Dichiara lo stato: id 4, stato di gioco (nessuna azione dei giocatori).
+     * Dichiara lo stato: id 4
      */
     function __construct(
         protected Game $game,
@@ -56,7 +56,7 @@ class DealHands extends GameState
             'deckCount' => $game->countCardsIn(Game::LOCATION_DECK),
         ]);
 
-        // Il giocatore dopo il mazziere apre ogni mano della smazzata.
+        // Il giocatore dopo il mazziere apre ogni mano della smazzata
         $game->gamestate->changeActivePlayer($game->getFirstPlayerId());
 
         return PlayerTurn::class;

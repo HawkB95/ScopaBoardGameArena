@@ -9,13 +9,13 @@ const CANCEL_BUTTON_ID = 'scopa-cancel-button';
 /**
  * Stato PlayerTurn: il giocatore attivo sceglie una carta dalla mano e, se può prendere, quali carte del tavolo
  * prendere. Le prese lecite arrivano dal server, il client si limita a
- * guidare la selezione e a inviare l'azione `actPlay`.
+ * guidare la selezione e a inviare l'azione `actPlay`
  *
  * Funzionamento:
  *  - clic su una carta in mano: la seleziona (di nuovo clic: la deseleziona);
  *  - se esiste una sola presa possibile, viene preselezionata; se ce ne sono più, il giocatore clicca le carte
  *    del tavolo, e quando la selezione coincide con una presa lecita il pulsante "Prendi" si abilita;
- *  - se nessuna presa è possibile, il pulsante diventa "Posa la carta sul tavolo".
+ *  - se nessuna presa è possibile, il pulsante diventa "Posa la carta sul tavolo"
  */
 export class PlayerTurn {
     /** Prese lecite per ogni carta in mano, ricevute dal server */
